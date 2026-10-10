@@ -1,0 +1,3 @@
+# MicroburstHunter live-capture backend
+# Capture + traffic shaping require Linux and elevated privileges.
+scapy>=2.5.0
