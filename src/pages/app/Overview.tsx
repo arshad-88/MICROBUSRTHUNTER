@@ -129,8 +129,9 @@ export default function Overview() {
               value: formatMb(dropMb),
               tone: (dropMb > 0 ? "mitigated" : "recovered") as Tone,
               icon: PackageX,
-              hint: `${formatMs(latest?.latencyMs ?? 0, 2)} modelled latency`,
+              hint: `${formatMs(latest?.latencyMs ?? 0, 2)} latency · ${(latest?.estimatedQueuePct ?? 0).toFixed(0)}% est. queue`,
             },
+
           ].map((tile, i) => (
             <div
               key={tile.label}

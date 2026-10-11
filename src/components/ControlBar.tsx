@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useMonitoring } from "@/state/monitoring";
+import { TRAFFIC_SCENARIOS, type TrafficScenarioType } from "@/simulation";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -15,6 +16,7 @@ import {
   ShieldOff,
   ShieldCheck,
   Zap,
+  Sliders,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,9 +40,8 @@ function Group({
 }
 
 /**
- * Operations strip: inject a reproducible burst, restore normal traffic, reset
- * the session and arm/disarm automatic mitigation. Every control drives the
- * simulation engine through the monitoring context.
+ * Operations strip: inject a reproducible burst, choose traffic scenario,
+ * restore normal traffic, reset session and arm/disarm automatic mitigation.
  */
 export function ControlBar({ compact = false }: { compact?: boolean }) {
   const {
@@ -50,6 +51,7 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
     restoreNormal,
     setMitigationEnabled,
     setBurstHost,
+    setScenario,
   } = useMonitoring();
 
   const sources = snapshot.hosts.filter((h) => h.transmits);
@@ -57,7 +59,38 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="panel-edge flex flex-wrap items-center gap-x-4 gap-y-3 rounded-md border border-border bg-surface px-3.5 py-3">
+      <Group label="scenario">
+        <Select
+          value={snapshot.activeScenario}
+          onValueChange={(val) => {
+            const sc = val as TrafficScenarioType;
+            setScenario({ scenario: sc });
+            toast.info(`Switched scenario to ${TRAFFIC_SCENARIOS[sc].name}`, {
+              description: TRAFFIC_SCENARIOS[sc].description,
+            });
+          }}
+        >
+          <SelectTrigger
+            size="sm"
+            className="h-8 w-[10.5rem] rounded-sm data-mono text-[11px]"
+            aria-label="Simulation scenario"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.values(TRAFFIC_SCENARIOS).map((sc) => (
+              <SelectItem key={sc.type} value={sc.type} className="data-mono text-[11px]">
+                {sc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Group>
+
+      <span className="hidden h-6 w-px bg-border xl:block" />
+
       <Group label="inject">
+
         <Select value={snapshot.selectedBurstHostId} onValueChange={setBurstHost}>
           <SelectTrigger
             size="sm"

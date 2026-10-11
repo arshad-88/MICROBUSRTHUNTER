@@ -10,6 +10,7 @@
 export type EventType =
   | "monitoring_started"
   | "monitoring_stopped"
+  | "scenario_started"
   | "burst_detected"
   | "burst_ended"
   | "source_ranked"
@@ -46,7 +47,9 @@ export interface AppEvent {
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   monitoring_started: "Monitoring started",
   monitoring_stopped: "Monitoring stopped",
+  scenario_started: "Scenario started",
   burst_detected: "Burst detected",
+
   burst_ended: "Burst ended",
   source_ranked: "Source ranked",
   mitigation_activated: "Mitigation activated",

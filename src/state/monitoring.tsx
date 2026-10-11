@@ -79,10 +79,12 @@ export interface MonitoringContextValue {
   removeMitigation: () => void;
   startExperiment: (scenario: ExperimentScenarioId) => void;
   stopExperiment: () => void;
+  setScenario: (options: import("@/simulation").ScenarioRunOptions) => void;
   clearEvents: () => void;
   clearExperiments: () => void;
   pushError: (action: string, outcome: string) => void;
 }
+
 
 const MonitoringContext = createContext<MonitoringContextValue | null>(null);
 
@@ -240,6 +242,15 @@ export function MonitoringProvider({ children }: { children: ReactNode }) {
     sync();
   }, [engine, stopTick, sync]);
 
+  const setScenario = useCallback(
+    (options: import("@/simulation").ScenarioRunOptions) => {
+      engine.setScenario(options);
+      setConfig(cloneConfig(engine.config));
+      sync();
+    },
+    [engine, sync],
+  );
+
   const clearEvents = useCallback(() => {
     engine.clearEvents();
     persist(EVENTS_KEY, []);
@@ -309,6 +320,7 @@ export function MonitoringProvider({ children }: { children: ReactNode }) {
       removeMitigation,
       startExperiment,
       stopExperiment,
+      setScenario,
       clearEvents,
       clearExperiments,
       pushError,
@@ -330,10 +342,12 @@ export function MonitoringProvider({ children }: { children: ReactNode }) {
       removeMitigation,
       startExperiment,
       stopExperiment,
+      setScenario,
       clearEvents,
       clearExperiments,
       pushError,
     ],
+
   );
 
   return (

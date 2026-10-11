@@ -132,16 +132,24 @@ export default function TrafficMonitor() {
       icon: PackageX,
       hint:
         dropMb > 0
-          ? `${formatPercent(dropPct)} of the current window · queue model`
+          ? `${formatPercent(dropPct)} of current window · modelled queue`
           : "no modelled drops",
+    },
+    {
+      label: "Estimated queue",
+      value: `${(snapshot.latest?.estimatedQueuePct ?? 0).toFixed(1)}%`,
+      tone: (snapshot.latest?.estimatedQueuePct ?? 0) > 60 ? "burst" : "neutral",
+      icon: Timer,
+      hint: `${((snapshot.latest?.estimatedQueueBytes ?? 0) / 1024).toFixed(1)} KB (modelled buffer estimate)`,
     },
   ];
 
   return (
     <div className="space-y-4">
       <Panel className="overflow-hidden">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           {tiles.map((tile, i) => (
+
             <div
               key={tile.label}
               className={cn(

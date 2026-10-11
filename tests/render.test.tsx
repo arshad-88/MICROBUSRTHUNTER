@@ -6,8 +6,9 @@
  * render the real route tree the way `main.tsx` does with no Convex client —
  * the configuration that used to produce a blank page.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+
 import { MemoryRouter, Route, Routes } from "react-router";
 import { AppAuthProvider } from "@/state/auth";
 import { MonitoringProvider } from "@/state/monitoring";

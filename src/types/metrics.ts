@@ -30,6 +30,16 @@ export interface TrafficSample {
   dropBytes: number;
   /** Simulated one-way latency in ms. */
   latencyMs: number;
+  /** Estimated queue occupancy in bytes (from simulation buffer model). */
+  estimatedQueueBytes?: number;
+  /** Estimated queue occupancy percentage (0-100%). */
+  estimatedQueuePct?: number;
+  /** Explicit indicator that queue is estimated rather than physical switch telemetry. */
+  isEstimatedQueue?: boolean;
+  /** Active scenario type generating this sample. */
+  scenarioType?: string;
+  /** Dropped packet count in this window. */
+  dropPackets?: number;
   /** Per-source rate in Mbps keyed by host id. */
   perSource: Record<string, number>;
 }

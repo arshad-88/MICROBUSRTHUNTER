@@ -21,6 +21,13 @@ import {
   type AppConfig,
 } from "./config";
 import {
+  TRAFFIC_SCENARIOS,
+  type TrafficScenarioType,
+  type ScenarioRunOptions,
+  type WindowTelemetry,
+} from "./scenarios";
+
+import {
   applyRateCap,
   bytesToMbps,
   bytesToPackets,
@@ -120,7 +127,10 @@ export interface MonitoringSnapshot {
   experiment: ExperimentRuntimeSnapshot;
   experiments: ExperimentResult[];
   selectedBurstHostId: string;
+  activeScenario: TrafficScenarioType;
+  latestTelemetry: WindowTelemetry | null;
 }
+
 
 export interface ExperimentRuntimeSnapshot {
   active: boolean;
@@ -200,6 +210,9 @@ export class SimulationEngine {
   private events: AppEvent[] = [];
   private idCounter = 0;
   private dataSource: "simulated" | "live";
+  private activeScenario: TrafficScenarioType = "normal";
+  private activeScenarioParams: ScenarioRunOptions | null = null;
+  private latestTelemetry: WindowTelemetry | null = null;
 
   constructor(options?: {
     config?: AppConfig;
@@ -360,6 +373,17 @@ export class SimulationEngine {
       totalRate += rate;
     }
 
+    // Apply active scenario dynamic traffic modulation (e.g. ramp or incast)
+    if (this.activeScenario === "ramp") {
+      const p = clamp(this.simTime / 8000, 0, 1);
+      const rampScale = 1 + p * 3.2; // Increases traffic smoothly towards link saturation
+      totalRate = 0;
+      for (const id of SOURCE_HOST_IDS) {
+        perSource[id] = applyRateCap(perSource[id] * rampScale, this.caps[id] ?? null);
+        totalRate += perSource[id];
+      }
+    }
+
     // Drop finished bursts from the schedule.
     this.scheduledBursts = this.scheduledBursts.filter(
       (b) => this.simTime <= b.endSim,
@@ -389,6 +413,7 @@ export class SimulationEngine {
 
     const totalBytes = mbpsToBytes(totalRate, w);
     const packets = bytesToPackets(totalBytes);
+    const dropPackets = bytesToPackets(queue.dropBytes);
 
     const sample: TrafficSample = {
       t: this.simTime,
@@ -398,8 +423,54 @@ export class SimulationEngine {
       bytes: totalBytes,
       packets,
       dropBytes: queue.dropBytes,
+      dropPackets,
       latencyMs: queue.latencyMs,
+      estimatedQueueBytes: queue.estimatedQueueBytes,
+      estimatedQueuePct: queue.estimatedQueuePct,
+      isEstimatedQueue: true,
+      scenarioType: this.activeScenario,
       perSource: perSource,
+    };
+
+    // Build rich WindowTelemetry record
+    const perSourceTelemetry: WindowTelemetry["perSource"] = {};
+    for (const id of SOURCE_HOST_IDS) {
+      const sRate = perSource[id] ?? 0;
+      const sBytes = mbpsToBytes(sRate, w);
+      perSourceTelemetry[id] = {
+        rateMbps: sRate,
+        bytes: sBytes,
+        packets: bytesToPackets(sBytes),
+        contributionPct: totalRate > 0 ? (sRate / totalRate) * 100 : 0,
+      };
+    }
+
+    const scheduledActiveBurst = this.scheduledBursts.find(
+      (b) => this.simTime >= b.startSim && this.simTime <= b.endSim,
+    );
+
+    this.latestTelemetry = {
+      windowMs: w,
+      t: this.simTime,
+      scenarioId: this.activeScenario,
+      rateMbps: totalRate,
+      bytes: totalBytes,
+      packets,
+      estimatedQueueBytes: queue.estimatedQueueBytes,
+      estimatedQueuePct: queue.estimatedQueuePct,
+      isEstimatedQueue: true,
+      dropBytes: queue.dropBytes,
+      dropPackets,
+      perSource: perSourceTelemetry,
+      burstInfo: {
+        active: this.currentBurst !== null || Boolean(scheduledActiveBurst),
+        burstStartSim: this.currentBurst?.detectedAtSim ?? scheduledActiveBurst?.startSim ?? null,
+        burstPeakMbps: this.currentBurst?.peakMbps ?? scheduledActiveBurst?.peakMbps ?? null,
+        burstDurationMs: scheduledActiveBurst
+          ? scheduledActiveBurst.endSim - scheduledActiveBurst.startSim
+          : null,
+      },
+      dataSource: this.dataSource,
     };
 
     // 4. Accumulate session / experiment statistics.
@@ -776,7 +847,92 @@ export class SimulationEngine {
     });
   }
 
+  /**
+   * Set and configure an active traffic simulation scenario.
+   */
+  setScenario(options: ScenarioRunOptions): void {
+    const def = TRAFFIC_SCENARIOS[options.scenario];
+    if (!def) return;
+    this.activeScenario = options.scenario;
+    this.activeScenarioParams = { ...options };
+
+    if (options.seed !== undefined) {
+      this.config.simulation.seed = options.seed;
+      this.rng = mulberry32(options.seed);
+    }
+
+    if (options.windowMs !== undefined && options.windowMs > 0) {
+      this.config.detection.windowMs = options.windowMs;
+    }
+
+    // Clear previously scheduled manual bursts
+    this.scheduledBursts = this.scheduledBursts.filter((b) => b.origin === "experiment");
+
+    const duration = options.durationMs ?? def.defaultDurationMs;
+    const intensity = options.intensityMbps ?? def.defaultIntensityMbps;
+    const senders = options.senderCount ?? def.defaultSenderCount;
+
+    if (options.scenario === "normal") {
+      if (this.mitigation.active) this.removeMitigation("manual");
+      this.pushEvent("scenario_started", "info", {
+        action: `Scenario started: ${def.name}`,
+        outcome: `${def.description} Multi-source load: ${senders} senders.`,
+      });
+    } else if (options.scenario === "microburst") {
+      const host = options.burstHostId ?? this.config.simulation.burstHostId;
+      this.simulateBurst(host, {
+        peakMbps: intensity,
+        durationMs: Math.min(duration, 500),
+        startDelayMs: 200,
+      });
+      this.pushEvent("scenario_started", "warning", {
+        action: `Scenario started: ${def.name}`,
+        outcome: `Injecting ${intensity} Mbps microburst on ${host.toUpperCase()}.`,
+      });
+    } else if (options.scenario === "incast") {
+      const sourceCount = Math.min(SOURCE_HOST_IDS.length, Math.max(2, senders));
+      const perHostBurst = intensity / sourceCount;
+      const startDelay = 250;
+      for (let i = 0; i < sourceCount; i++) {
+        const host = SOURCE_HOST_IDS[i];
+        this.scheduledBursts.push({
+          hostId: host,
+          startSim: this.simTime + startDelay,
+          endSim: this.simTime + startDelay + 600,
+          peakMbps: perHostBurst,
+          origin: "manual",
+        });
+      }
+      this.pushEvent("scenario_started", "critical", {
+        action: `Scenario started: ${def.name}`,
+        outcome: `Synchronized burst from ${sourceCount} sources totalling ~${intensity} Mbps towards receiver.`,
+      });
+    } else if (options.scenario === "recovery") {
+      const host = options.burstHostId ?? this.config.simulation.burstHostId;
+      this.simulateBurst(host, {
+        peakMbps: intensity,
+        durationMs: 400,
+        startDelayMs: 150,
+      });
+      this.pushEvent("scenario_started", "info", {
+        action: `Scenario started: ${def.name}`,
+        outcome: `Microburst triggered with monitored post-burst recovery phase.`,
+      });
+    } else if (options.scenario === "ramp") {
+      this.pushEvent("scenario_started", "info", {
+        action: `Scenario started: ${def.name}`,
+        outcome: `Gradually increasing traffic load towards link saturation.`,
+      });
+    }
+  }
+
+  getLatestTelemetry(): WindowTelemetry | null {
+    return this.latestTelemetry;
+  }
+
   restoreNormal(): void {
+    this.activeScenario = "normal";
+
     this.scheduledBursts = this.scheduledBursts.filter((b) => b.origin === "experiment");
     if (this.mitigation.active) this.removeMitigation("manual");
   }
@@ -1023,8 +1179,11 @@ export class SimulationEngine {
       experiment: { ...this.experiment },
       experiments: this.experiments.slice(),
       selectedBurstHostId: this.config.simulation.burstHostId,
+      activeScenario: this.activeScenario,
+      latestTelemetry: this.latestTelemetry ? { ...this.latestTelemetry } : null,
     };
   }
+
 
   getEvents(): AppEvent[] {
     return this.events.slice();

@@ -101,35 +101,64 @@ export interface QueueResult {
   utilization: number;
   dropBytes: number;
   latencyMs: number;
+  estimatedQueueBytes: number;
+  estimatedQueuePct: number;
 }
 
 /**
- * Simple simulated switch-buffer / queueing model.
+ * Switch-buffer queueing model.
  *
- * This is an EXPLICITLY SIMULATED model, not a measurement: it uses a single
- * bottleneck link with a drop-tail buffer and an M/M/1-style latency curve.
- * Bytes above capacity are counted as drops.
+ * This is an EXPLICITLY SIMULATED model, not a hardware register measurement.
+ * It models queue buffer buildup (default 256 KB switch buffer) and drop-tail
+ * drops when incoming rate exceeds drain capacity.
  */
 export function simulateQueue(
   rateMbps: number,
   capacityMbps: number,
   baseLatencyMs: number,
   windowMs: number,
+  bufferSizeBytes = 256 * 1024,
 ): QueueResult {
   if (capacityMbps <= 0) {
-    return { utilization: 0, dropBytes: 0, latencyMs: baseLatencyMs };
+    return {
+      utilization: 0,
+      dropBytes: 0,
+      latencyMs: baseLatencyMs,
+      estimatedQueueBytes: 0,
+      estimatedQueuePct: 0,
+    };
   }
   const utilization = rateMbps / capacityMbps;
+  const incomingBytes = mbpsToBytes(rateMbps, windowMs);
+  const serviceBytes = mbpsToBytes(capacityMbps, windowMs);
+
   const excess = Math.max(0, rateMbps - capacityMbps);
   const dropBytes = mbpsToBytes(excess, windowMs);
-  // Latency grows as the link approaches saturation and is capped so the
-  // chart stays readable instead of diverging to infinity at exactly 100%.
+
+  // Queue occupancy estimate based on link load and buffer capacity
+  const estimatedQueueBytes = Math.round(
+    bufferSizeBytes * (utilization >= 1 ? clamp(utilization - 0.2, 0.8, 1.0) : Math.min(0.2, utilization * 0.2)),
+  );
+
+
+
+  const estimatedQueuePct = clamp(
+    (estimatedQueueBytes / bufferSizeBytes) * 100,
+    0,
+    100,
+  );
+
+  // Latency grows as the link approaches saturation and queue builds up
   const load = clamp(utilization, 0, 0.999);
-  const latencyMs = baseLatencyMs / Math.max(0.001, 1 - load);
+  const queueDelayMs = (estimatedQueueBytes / Math.max(1, serviceBytes)) * windowMs;
+  const latencyMs = baseLatencyMs / Math.max(0.001, 1 - load) + queueDelayMs;
+
   return {
     utilization,
     dropBytes,
     latencyMs: Math.min(latencyMs, baseLatencyMs * 60),
+    estimatedQueueBytes,
+    estimatedQueuePct,
   };
 }
 
