@@ -44,85 +44,114 @@
   --color-warning: var(--warning);
   --color-burst: var(--burst);
   --color-info: var(--info);
+  /* MicroburstHunter extensions */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-rail: var(--rail);
+  --color-violet: var(--violet);
+  --font-mono: var(--font-mono-stack);
 }
 
-/* MicroburstHunter — dark Network Operations Center theme.
-   The product is dark-only, so :root and .dark share the same NOC palette. */
+/* MicroburstHunter visual language.
+   ---------------------------------------------------------------------------
+   Graphite ground, deep midnight-blue layered surfaces, warm-white type and a
+   small, disciplined accent set: electric cyan (primary), signal coral (burst),
+   mint (healthy), violet (baseline / analysis), amber (mitigated).
+   The product is dark-only, so :root and .dark share one palette. */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.17 0.02 255);
-  --foreground: oklch(0.96 0.008 250);
-  --card: oklch(0.215 0.021 255);
-  --card-foreground: oklch(0.96 0.008 250);
-  --popover: oklch(0.215 0.021 255);
-  --popover-foreground: oklch(0.96 0.008 250);
-  --primary: oklch(0.74 0.13 208);
-  --primary-foreground: oklch(0.16 0.02 255);
-  --secondary: oklch(0.27 0.022 255);
-  --secondary-foreground: oklch(0.96 0.008 250);
-  --muted: oklch(0.26 0.02 255);
-  --muted-foreground: oklch(0.7 0.02 250);
-  --accent: oklch(0.3 0.03 245);
-  --accent-foreground: oklch(0.96 0.008 250);
-  --destructive: oklch(0.62 0.22 25);
-  --border: oklch(0.32 0.02 255);
-  --input: oklch(0.34 0.02 255);
-  --ring: oklch(0.55 0.09 220);
-  --chart-1: oklch(0.74 0.13 208);
-  --chart-2: oklch(0.66 0.15 252);
-  --chart-3: oklch(0.79 0.15 75);
-  --chart-4: oklch(0.73 0.17 155);
-  --chart-5: oklch(0.65 0.22 25);
-  --success: oklch(0.73 0.17 155);
-  --warning: oklch(0.79 0.15 75);
-  --burst: oklch(0.65 0.22 25);
-  --info: oklch(0.74 0.13 208);
-  --sidebar: oklch(0.185 0.021 255);
-  --sidebar-foreground: oklch(0.88 0.01 250);
-  --sidebar-primary: oklch(0.74 0.13 208);
-  --sidebar-primary-foreground: oklch(0.16 0.02 255);
-  --sidebar-accent: oklch(0.28 0.026 255);
-  --sidebar-accent-foreground: oklch(0.97 0.008 250);
-  --sidebar-border: oklch(0.3 0.02 255);
-  --sidebar-ring: oklch(0.55 0.09 220);
+  --radius: 0.5rem;
+
+  /* Ground + surfaces (layered, low-chroma, midnight undertone) */
+  --background: oklch(0.152 0.012 264);
+  --rail: oklch(0.128 0.014 264);
+  --surface: oklch(0.198 0.022 262);
+  --surface-2: oklch(0.232 0.026 261);
+  --foreground: oklch(0.955 0.01 88);
+  --card: oklch(0.198 0.022 262);
+  --card-foreground: oklch(0.955 0.01 88);
+  --popover: oklch(0.232 0.026 261);
+  --popover-foreground: oklch(0.955 0.01 88);
+
+  /* Accents */
+  --primary: oklch(0.8 0.135 205);
+  --primary-foreground: oklch(0.16 0.02 264);
+  --secondary: oklch(0.252 0.024 262);
+  --secondary-foreground: oklch(0.955 0.01 88);
+  --muted: oklch(0.245 0.022 262);
+  --muted-foreground: oklch(0.705 0.015 262);
+  --accent: oklch(0.278 0.03 258);
+  --accent-foreground: oklch(0.97 0.01 88);
+  --destructive: oklch(0.68 0.185 24);
+  --border: oklch(0.305 0.022 262);
+  --input: oklch(0.34 0.024 262);
+  --ring: oklch(0.62 0.09 205);
+
+  --chart-1: oklch(0.8 0.135 205); /* electric cyan   */
+  --chart-2: oklch(0.72 0.14 296); /* violet          */
+  --chart-3: oklch(0.83 0.13 80); /* amber           */
+  --chart-4: oklch(0.8 0.13 162); /* mint            */
+  --chart-5: oklch(0.68 0.185 24); /* signal coral    */
+
+  --success: oklch(0.8 0.13 162);
+  --warning: oklch(0.83 0.13 80);
+  --burst: oklch(0.68 0.185 24);
+  --info: oklch(0.8 0.135 205);
+  --violet: oklch(0.72 0.14 296);
+
+  --font-mono-stack: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo,
+    Consolas, monospace;
+
+  /* Navigation rail tokens */
+  --sidebar: oklch(0.128 0.014 264);
+  --sidebar-foreground: oklch(0.86 0.012 262);
+  --sidebar-primary: oklch(0.8 0.135 205);
+  --sidebar-primary-foreground: oklch(0.16 0.02 264);
+  --sidebar-accent: oklch(0.245 0.026 261);
+  --sidebar-accent-foreground: oklch(0.97 0.01 88);
+  --sidebar-border: oklch(0.272 0.02 262);
+  --sidebar-ring: oklch(0.62 0.09 205);
 }
 
 .dark {
-  --background: oklch(0.17 0.02 255);
-  --foreground: oklch(0.96 0.008 250);
-  --card: oklch(0.215 0.021 255);
-  --card-foreground: oklch(0.96 0.008 250);
-  --popover: oklch(0.215 0.021 255);
-  --popover-foreground: oklch(0.96 0.008 250);
-  --primary: oklch(0.74 0.13 208);
-  --primary-foreground: oklch(0.16 0.02 255);
-  --secondary: oklch(0.27 0.022 255);
-  --secondary-foreground: oklch(0.96 0.008 250);
-  --muted: oklch(0.26 0.02 255);
-  --muted-foreground: oklch(0.7 0.02 250);
-  --accent: oklch(0.3 0.03 245);
-  --accent-foreground: oklch(0.96 0.008 250);
-  --destructive: oklch(0.62 0.22 25);
-  --border: oklch(0.32 0.02 255);
-  --input: oklch(0.34 0.02 255);
-  --ring: oklch(0.55 0.09 220);
-  --chart-1: oklch(0.74 0.13 208);
-  --chart-2: oklch(0.66 0.15 252);
-  --chart-3: oklch(0.79 0.15 75);
-  --chart-4: oklch(0.73 0.17 155);
-  --chart-5: oklch(0.65 0.22 25);
-  --success: oklch(0.73 0.17 155);
-  --warning: oklch(0.79 0.15 75);
-  --burst: oklch(0.65 0.22 25);
-  --info: oklch(0.74 0.13 208);
-  --sidebar: oklch(0.185 0.021 255);
-  --sidebar-foreground: oklch(0.88 0.01 250);
-  --sidebar-primary: oklch(0.74 0.13 208);
-  --sidebar-primary-foreground: oklch(0.16 0.02 255);
-  --sidebar-accent: oklch(0.28 0.026 255);
-  --sidebar-accent-foreground: oklch(0.97 0.008 250);
-  --sidebar-border: oklch(0.3 0.02 255);
-  --sidebar-ring: oklch(0.55 0.09 220);
+  --background: oklch(0.152 0.012 264);
+  --rail: oklch(0.128 0.014 264);
+  --surface: oklch(0.198 0.022 262);
+  --surface-2: oklch(0.232 0.026 261);
+  --foreground: oklch(0.955 0.01 88);
+  --card: oklch(0.198 0.022 262);
+  --card-foreground: oklch(0.955 0.01 88);
+  --popover: oklch(0.232 0.026 261);
+  --popover-foreground: oklch(0.955 0.01 88);
+  --primary: oklch(0.8 0.135 205);
+  --primary-foreground: oklch(0.16 0.02 264);
+  --secondary: oklch(0.252 0.024 262);
+  --secondary-foreground: oklch(0.955 0.01 88);
+  --muted: oklch(0.245 0.022 262);
+  --muted-foreground: oklch(0.705 0.015 262);
+  --accent: oklch(0.278 0.03 258);
+  --accent-foreground: oklch(0.97 0.01 88);
+  --destructive: oklch(0.68 0.185 24);
+  --border: oklch(0.305 0.022 262);
+  --input: oklch(0.34 0.024 262);
+  --ring: oklch(0.62 0.09 205);
+  --success: oklch(0.8 0.13 162);
+  --warning: oklch(0.83 0.13 80);
+  --burst: oklch(0.68 0.185 24);
+  --info: oklch(0.8 0.135 205);
+  --violet: oklch(0.72 0.14 296);
+  --chart-1: oklch(0.8 0.135 205);
+  --chart-2: oklch(0.72 0.14 296);
+  --chart-3: oklch(0.83 0.13 80);
+  --chart-4: oklch(0.8 0.13 162);
+  --chart-5: oklch(0.68 0.185 24);
+  --sidebar: oklch(0.128 0.014 264);
+  --sidebar-foreground: oklch(0.86 0.012 262);
+  --sidebar-primary: oklch(0.8 0.135 205);
+  --sidebar-primary-foreground: oklch(0.16 0.02 264);
+  --sidebar-accent: oklch(0.245 0.026 261);
+  --sidebar-accent-foreground: oklch(0.97 0.01 88);
+  --sidebar-border: oklch(0.272 0.02 262);
+  --sidebar-ring: oklch(0.62 0.09 205);
 }
 
 @layer base {
@@ -132,6 +161,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "tnum" 1, "cv11" 1;
+    -webkit-font-smoothing: antialiased;
   }
   html {
     color-scheme: dark;
@@ -140,14 +170,54 @@
   [role="button"]:not([disabled]) {
     cursor: pointer;
   }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
-/* NOC utilities -------------------------------------------------------- */
+/* Utilities ------------------------------------------------------------- */
+
+/* Data type: mono, tabular, slightly tightened for dense instrumentation. */
+.data-mono {
+  font-family: var(--font-mono-stack);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Editorial label used for section eyebrows and metric captions. */
+.label-caps {
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Fine engineering grid — used behind maps and hero panels. */
+.fabric-grid {
+  background-image:
+    linear-gradient(to right, oklch(1 0 0 / 3.5%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 3.5%) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center;
+}
+/* Back-compat alias (older components referenced .noc-grid). */
 .noc-grid {
   background-image:
-    linear-gradient(to right, oklch(1 0 0 / 3%) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(1 0 0 / 3%) 1px, transparent 1px);
-  background-size: 44px 44px;
+    linear-gradient(to right, oklch(1 0 0 / 3.5%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 3.5%) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Hairline top highlight that makes layered surfaces read as physical panels. */
+.panel-edge {
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 4%),
+    0 1px 2px 0 oklch(0 0 0 / 30%);
 }
 
 @keyframes mbh-dash {
@@ -160,10 +230,20 @@
   animation: mbh-dash 0.9s linear infinite;
 }
 
+@keyframes mbh-sweep {
+  to {
+    stroke-dashoffset: -140;
+  }
+}
+.mbh-sweep {
+  stroke-dasharray: 2 138;
+  animation: mbh-sweep 2.2s linear infinite;
+}
+
 @keyframes mbh-pulse {
   0%,
   100% {
-    opacity: 0.85;
+    opacity: 0.9;
   }
   50% {
     opacity: 0.35;
@@ -171,6 +251,43 @@
 }
 .mbh-pulse {
   animation: mbh-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mbh-ring {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+.mbh-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mbh-ring 1.8s ease-out infinite;
+}
+
+/* Respect the user's motion preference for every decorative animation. */
+@media (prefers-reduced-motion: reduce) {
+  .mbh-flow,
+  .mbh-sweep,
+  .mbh-pulse,
+  .mbh-ring {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 ::-webkit-scrollbar {
