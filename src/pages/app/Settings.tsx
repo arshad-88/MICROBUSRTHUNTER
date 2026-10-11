@@ -10,10 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { KeyValue, Panel, PanelHeader, Tag } from "@/components/kit";
 import { useMonitoring } from "@/state/monitoring";
 import { DEFAULT_CONFIG, cloneConfig, validateConfig } from "@/simulation";
 import type { AppConfig } from "@/simulation/config";
-import { RotateCcw, Save, TriangleAlert } from "lucide-react";
+import { RotateCcw, Save, Settings as SettingsIcon, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -64,267 +65,323 @@ export default function Settings() {
   const issueFor = (field: string) => issues.find((i) => i.field === field);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold tracking-tight">Configuration</p>
-          <p className="text-[11px] text-muted-foreground">
-            Invalid values are rejected and the previous safe configuration is kept.
-          </p>
+    <div className="space-y-4">
+      <Panel className="overflow-hidden">
+        <PanelHeader
+          title="Configuration"
+          index="08"
+          icon={SettingsIcon}
+          note="Invalid values are rejected on apply and the previous safe configuration is retained."
+          actions={
+            <>
+              {dirty ? (
+                <Tag tone="mitigated">unsaved changes</Tag>
+              ) : (
+                <Tag tone="neutral">in sync</Tag>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5 rounded-sm"
+                onClick={handleReset}
+              >
+                <RotateCcw className="size-3.5" />
+                Reset defaults
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="gap-1.5 rounded-sm"
+                onClick={handleApply}
+                disabled={!dirty}
+              >
+                <Save className="size-3.5" />
+                Apply settings
+              </Button>
+            </>
+          }
+        />
+        <div className="grid grid-cols-1 px-4 py-3 sm:grid-cols-3">
+          <KeyValue label="Active window" mono>
+            {snapshot.config.detection.windowMs} ms
+          </KeyValue>
+          <KeyValue label="Active threshold" mono>
+            {snapshot.config.detection.minRateMbps} Mbps · ×
+            {snapshot.config.detection.baselineMultiplier}
+          </KeyValue>
+          <KeyValue label="Data source" mono>
+            {snapshot.dataSource}
+          </KeyValue>
         </div>
-        <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={handleReset}>
-            <RotateCcw className="size-3.5" />
-            Reset to defaults
-          </Button>
-          <Button type="button" size="sm" className="gap-1.5" onClick={handleApply} disabled={!dirty}>
-            <Save className="size-3.5" />
-            Apply settings
-          </Button>
-        </div>
-      </div>
+      </Panel>
 
       {issues.length > 0 && (
-        <div className="rounded-lg border border-burst/40 bg-burst/10 px-4 py-3">
-          <p className="flex items-center gap-2 text-sm font-medium text-burst">
-            <TriangleAlert className="size-4" />
+        <div className="rounded-md border border-burst/45 bg-burst/[0.07] px-4 py-3">
+          <p className="flex items-center gap-2 label-caps text-burst">
+            <TriangleAlert className="size-3.5" />
             {issues.length} validation issue{issues.length > 1 ? "s" : ""}
           </p>
-          <ul className="mt-1.5 list-disc pl-6 text-xs text-muted-foreground">
+          <ul className="mt-2 space-y-1">
             {issues.map((issue) => (
-              <li key={issue.field}>{issue.message}</li>
+              <li key={issue.field} className="text-[11px] text-muted-foreground">
+                <span className="data-mono mr-2 text-muted-foreground/70">{issue.field}</span>
+                {issue.message}
+              </li>
             ))}
           </ul>
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Detection engine" subtitle="Microburst detector parameters">
-          <NumberField
-            label="Minimum rate (Mbps)"
-            value={draft.detection.minRateMbps}
-            error={issueFor("detection.minRateMbps")?.message}
-            onChange={(v) => patchDetection({ minRateMbps: v })}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Panel className="overflow-hidden">
+          <PanelHeader
+            title="Detection engine"
+            note="Educational defaults that make a 10 ms microburst visible in a review."
           />
-          <NumberField
-            label="Baseline multiplier"
-            value={draft.detection.baselineMultiplier}
-            step="0.5"
-            error={issueFor("detection.baselineMultiplier")?.message}
-            onChange={(v) => patchDetection({ baselineMultiplier: v })}
-          />
-          <NumberField
-            label="Sampling window (ms)"
-            value={draft.detection.windowMs}
-            error={issueFor("detection.windowMs")?.message}
-            onChange={(v) => patchDetection({ windowMs: v })}
-          />
-          <NumberField
-            label="Baseline window (ms)"
-            value={draft.detection.baselineWindowMs}
-            error={issueFor("detection.baselineWindowMs")?.message}
-            onChange={(v) => patchDetection({ baselineWindowMs: v })}
-          />
-          <NumberField
-            label="Burst persistence (windows)"
-            value={draft.detection.persistenceWindows}
-            error={issueFor("detection.persistenceWindows")?.message}
-            onChange={(v) => patchDetection({ persistenceWindows: v })}
-          />
-          <NumberField
-            label="Recovery windows"
-            value={draft.detection.recoveryWindows}
-            error={issueFor("detection.recoveryWindows")?.message}
-            onChange={(v) => patchDetection({ recoveryWindows: v })}
-          />
-          <NumberField
-            label="Burst cooldown (ms)"
-            value={draft.detection.cooldownMs}
-            error={issueFor("detection.cooldownMs")?.message}
-            onChange={(v) => patchDetection({ cooldownMs: v })}
-          />
-          <NumberField
-            label="Severe ratio (× baseline)"
-            value={draft.detection.severeRatio}
-            step="0.5"
-            error={issueFor("detection.severeRatio")?.message}
-            onChange={(v) => patchDetection({ severeRatio: v })}
-          />
-        </Section>
-
-        <Section title="Adaptive mitigation" subtitle="Rate cap policy">
-          <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
-            <Label className="text-sm">Automatic mitigation</Label>
-            <Switch
-              checked={draft.mitigation.autoEnabled}
-              onCheckedChange={(checked) => {
-                patchMitigation({ autoEnabled: checked });
-                setMitigationEnabled(checked);
-              }}
+          <div className="space-y-3 px-4 py-3.5">
+            <NumberField
+              label="Minimum rate (Mbps)"
+              value={draft.detection.minRateMbps}
+              error={issueFor("detection.minRateMbps")?.message}
+              onChange={(v) => patchDetection({ minRateMbps: v })}
             />
+            <NumberField
+              label="Baseline multiplier"
+              value={draft.detection.baselineMultiplier}
+              step="0.5"
+              error={issueFor("detection.baselineMultiplier")?.message}
+              onChange={(v) => patchDetection({ baselineMultiplier: v })}
+            />
+            <NumberField
+              label="Sampling window (ms)"
+              value={draft.detection.windowMs}
+              error={issueFor("detection.windowMs")?.message}
+              onChange={(v) => patchDetection({ windowMs: v })}
+            />
+            <NumberField
+              label="Baseline window (ms)"
+              value={draft.detection.baselineWindowMs}
+              error={issueFor("detection.baselineWindowMs")?.message}
+              onChange={(v) => patchDetection({ baselineWindowMs: v })}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Persistence (windows)"
+                value={draft.detection.persistenceWindows}
+                error={issueFor("detection.persistenceWindows")?.message}
+                onChange={(v) => patchDetection({ persistenceWindows: v })}
+              />
+              <NumberField
+                label="Recovery windows"
+                value={draft.detection.recoveryWindows}
+                error={issueFor("detection.recoveryWindows")?.message}
+                onChange={(v) => patchDetection({ recoveryWindows: v })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Burst cooldown (ms)"
+                value={draft.detection.cooldownMs}
+                error={issueFor("detection.cooldownMs")?.message}
+                onChange={(v) => patchDetection({ cooldownMs: v })}
+              />
+              <NumberField
+                label="Severe ratio (×)"
+                value={draft.detection.severeRatio}
+                step="0.5"
+                error={issueFor("detection.severeRatio")?.message}
+                onChange={(v) => patchDetection({ severeRatio: v })}
+              />
+            </div>
           </div>
-          <NumberField
-            label="Mild cap (Mbps)"
-            value={draft.mitigation.rateLimitMbps}
-            error={issueFor("mitigation.rateLimitMbps")?.message}
-            onChange={(v) => patchMitigation({ rateLimitMbps: v })}
-          />
-          <NumberField
-            label="Severe cap (Mbps)"
-            value={draft.mitigation.severeRateLimitMbps}
-            error={issueFor("mitigation.severeRateLimitMbps")?.message}
-            onChange={(v) => patchMitigation({ severeRateLimitMbps: v })}
-          />
-          <NumberField
-            label="Maximum duration (ms)"
-            value={draft.mitigation.maxDurationMs}
-            error={issueFor("mitigation.maxDurationMs")?.message}
-            onChange={(v) => patchMitigation({ maxDurationMs: v })}
-          />
-          <NumberField
-            label="Mitigation cooldown (ms)"
-            value={draft.mitigation.cooldownMs}
-            error={issueFor("mitigation.cooldownMs")?.message}
-            onChange={(v) => patchMitigation({ cooldownMs: v })}
-          />
-          <NumberField
-            label="Recovery fraction (0-1)"
-            value={draft.mitigation.recoveryFraction}
-            step="0.05"
-            error={issueFor("mitigation.recoveryFraction")?.message}
-            onChange={(v) => patchMitigation({ recoveryFraction: v })}
-          />
-        </Section>
+        </Panel>
 
-        <Section title="Simulation & source" subtitle="Traffic generator and data source">
-          <div>
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Data source
-            </Label>
-            <Select
-              value={draft.simulation.dataSource}
-              onValueChange={(v) => patchSimulation({ dataSource: v as "simulated" | "live" })}
+        <Panel className="overflow-hidden">
+          <PanelHeader title="Adaptive mitigation" note="Rate-cap policy thresholds and safety limits." />
+          <div className="space-y-3 px-4 py-3.5">
+            <label
+              htmlFor="settings-auto-mitigation"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-sm border border-border bg-surface-2/60 px-3 py-2.5"
             >
-              <SelectTrigger className="mt-1 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="simulated">Simulation (deterministic model)</SelectItem>
-                <SelectItem value="live" disabled>
-                  Live capture (requires Python backend)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              The browser build always reports simulated data. Live capture is provided by the
-              separate Python/Scapy backend and must be started explicitly.
+              <span className="text-[12px] text-foreground">Automatic mitigation</span>
+              <Switch
+                id="settings-auto-mitigation"
+                checked={draft.mitigation.autoEnabled}
+                onCheckedChange={(checked) => {
+                  patchMitigation({ autoEnabled: checked });
+                  setMitigationEnabled(checked);
+                }}
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Mild cap (Mbps)"
+                value={draft.mitigation.rateLimitMbps}
+                error={issueFor("mitigation.rateLimitMbps")?.message}
+                onChange={(v) => patchMitigation({ rateLimitMbps: v })}
+              />
+              <NumberField
+                label="Severe cap (Mbps)"
+                value={draft.mitigation.severeRateLimitMbps}
+                error={issueFor("mitigation.severeRateLimitMbps")?.message}
+                onChange={(v) => patchMitigation({ severeRateLimitMbps: v })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Maximum duration (ms)"
+                value={draft.mitigation.maxDurationMs}
+                error={issueFor("mitigation.maxDurationMs")?.message}
+                onChange={(v) => patchMitigation({ maxDurationMs: v })}
+              />
+              <NumberField
+                label="Cooldown (ms)"
+                value={draft.mitigation.cooldownMs}
+                error={issueFor("mitigation.cooldownMs")?.message}
+                onChange={(v) => patchMitigation({ cooldownMs: v })}
+              />
+            </div>
+            <NumberField
+              label="Recovery fraction (0–1)"
+              value={draft.mitigation.recoveryFraction}
+              step="0.05"
+              error={issueFor("mitigation.recoveryFraction")?.message}
+              onChange={(v) => patchMitigation({ recoveryFraction: v })}
+            />
+            <p className="border-t border-border pt-2.5 text-[10.5px] leading-4 text-muted-foreground">
+              The cap is applied inside the traffic model. Real interface shaping is performed by
+              the separate Python backend, never from the browser.
             </p>
           </div>
-          <NumberField
-            label="Bottleneck capacity (Mbps)"
-            value={draft.simulation.linkCapacityMbps}
-            error={issueFor("simulation.linkCapacityMbps")?.message}
-            onChange={(v) => patchSimulation({ linkCapacityMbps: v })}
-          />
-          <NumberField
-            label="Base latency (ms)"
-            value={draft.simulation.baseLatencyMs}
-            step="0.1"
-            error={issueFor("simulation.baseLatencyMs")?.message}
-            onChange={(v) => patchSimulation({ baseLatencyMs: v })}
-          />
-          <NumberField
-            label="Tick interval (ms)"
-            value={draft.simulation.tickIntervalMs}
-            error={issueFor("simulation.tickIntervalMs")?.message}
-            onChange={(v) => patchSimulation({ tickIntervalMs: v })}
-          />
-          <NumberField
-            label="Windows per tick"
-            value={draft.simulation.windowsPerTick}
-            error={issueFor("simulation.windowsPerTick")?.message}
-            onChange={(v) => patchSimulation({ windowsPerTick: v })}
-          />
-          <NumberField
-            label="Burst peak (Mbps)"
-            value={draft.simulation.burstPeakMbps}
-            error={issueFor("simulation.burstPeakMbps")?.message}
-            onChange={(v) => patchSimulation({ burstPeakMbps: v })}
-          />
-          <NumberField
-            label="Burst duration (ms)"
-            value={draft.simulation.burstDurationMs}
-            error={issueFor("simulation.burstDurationMs")?.message}
-            onChange={(v) => patchSimulation({ burstDurationMs: v })}
-          />
-          <NumberField
-            label="PRNG seed"
-            value={draft.simulation.seed}
-            error={issueFor("simulation.seed")?.message}
-            onChange={(v) => patchSimulation({ seed: v })}
-          />
-          <div>
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Burst source host
-            </Label>
-            <Select
-              value={draft.simulation.burstHostId}
-              onValueChange={(v) => patchSimulation({ burstHostId: v })}
-            >
-              <SelectTrigger className="mt-1 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {snapshot.hosts
-                  .filter((h) => h.transmits)
-                  .map((h) => (
-                    <SelectItem key={h.id} value={h.id}>
-                      {h.name} · {h.ip}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            {issueFor("simulation.burstHostId") && (
-              <p className="mt-1 text-[11px] text-burst">
-                {issueFor("simulation.burstHostId")?.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Interface (live capture, optional)
-            </Label>
-            <Input
-              value={draft.simulation.interfaceName ?? ""}
-              placeholder="e.g. eth0 (unused in simulation)"
-              className="mt-1"
-              onChange={(e) =>
-                patchSimulation({ interfaceName: e.target.value || null })
-              }
-            />
-          </div>
-        </Section>
-      </div>
-    </div>
-  );
-}
+        </Panel>
 
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3 rounded-lg border border-border bg-card p-4">
-      <div>
-        <p className="text-sm font-semibold tracking-tight">{title}</p>
-        <p className="text-[11px] text-muted-foreground">{subtitle}</p>
+        <Panel className="overflow-hidden">
+          <PanelHeader title="Simulation & source" note="Deterministic generator and data-source configuration." />
+          <div className="space-y-3 px-4 py-3.5">
+            <div>
+              <Label htmlFor="data-source" className="label-caps text-muted-foreground">
+                Data source
+              </Label>
+              <Select
+                value={draft.simulation.dataSource}
+                onValueChange={(v) => patchSimulation({ dataSource: v as "simulated" | "live" })}
+              >
+                <SelectTrigger id="data-source" className="mt-1 w-full rounded-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="simulated">Simulation (deterministic model)</SelectItem>
+                  <SelectItem value="live" disabled>
+                    Live capture (requires Python backend)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
+                The browser build always reports simulated data. Live capture is provided by the
+                separate Python/Scapy backend and must be started explicitly.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Capacity (Mbps)"
+                value={draft.simulation.linkCapacityMbps}
+                error={issueFor("simulation.linkCapacityMbps")?.message}
+                onChange={(v) => patchSimulation({ linkCapacityMbps: v })}
+              />
+              <NumberField
+                label="Base latency (ms)"
+                value={draft.simulation.baseLatencyMs}
+                step="0.1"
+                error={issueFor("simulation.baseLatencyMs")?.message}
+                onChange={(v) => patchSimulation({ baseLatencyMs: v })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Tick interval (ms)"
+                value={draft.simulation.tickIntervalMs}
+                error={issueFor("simulation.tickIntervalMs")?.message}
+                onChange={(v) => patchSimulation({ tickIntervalMs: v })}
+              />
+              <NumberField
+                label="Windows per tick"
+                value={draft.simulation.windowsPerTick}
+                error={issueFor("simulation.windowsPerTick")?.message}
+                onChange={(v) => patchSimulation({ windowsPerTick: v })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Burst peak (Mbps)"
+                value={draft.simulation.burstPeakMbps}
+                error={issueFor("simulation.burstPeakMbps")?.message}
+                onChange={(v) => patchSimulation({ burstPeakMbps: v })}
+              />
+              <NumberField
+                label="Burst duration (ms)"
+                value={draft.simulation.burstDurationMs}
+                error={issueFor("simulation.burstDurationMs")?.message}
+                onChange={(v) => patchSimulation({ burstDurationMs: v })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="settings-seed" className="label-caps text-muted-foreground">
+                PRNG seed
+              </Label>
+              <Input
+                id="settings-seed"
+                type="number"
+                value={Number.isFinite(draft.simulation.seed) ? String(draft.simulation.seed) : ""}
+                className="data-mono mt-1 rounded-sm"
+                onChange={(e) => patchSimulation({ seed: Number(e.target.value) })}
+              />
+              <p className="mt-1 text-[10.5px] text-muted-foreground">
+                Identical seed and settings reproduce a run exactly.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="settings-burst-host" className="label-caps text-muted-foreground">
+                Burst source host
+              </Label>
+              <Select
+                value={draft.simulation.burstHostId}
+                onValueChange={(v) => patchSimulation({ burstHostId: v })}
+              >
+                <SelectTrigger id="settings-burst-host" className="mt-1 w-full rounded-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {snapshot.hosts
+                    .filter((h) => h.transmits)
+                    .map((h) => (
+                      <SelectItem key={h.id} value={h.id} className="data-mono text-[11px]">
+                        {h.name} · {h.ip}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {issueFor("simulation.burstHostId") && (
+                <p className="mt-1 text-[10.5px] text-burst">
+                  {issueFor("simulation.burstHostId")?.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="settings-interface" className="label-caps text-muted-foreground">
+                Interface (live capture, optional)
+              </Label>
+              <Input
+                id="settings-interface"
+                value={draft.simulation.interfaceName ?? ""}
+                placeholder="e.g. eth0 — unused in simulation"
+                className="data-mono mt-1 rounded-sm"
+                onChange={(e) => patchSimulation({ interfaceName: e.target.value || null })}
+              />
+            </div>
+          </div>
+        </Panel>
       </div>
-      <div className="space-y-3">{children}</div>
     </div>
   );
 }
@@ -342,17 +399,21 @@ function NumberField({
   step?: string;
   error?: string;
 }) {
+  const id = `field-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
   return (
     <div>
-      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Label htmlFor={id} className="label-caps text-muted-foreground">
+        {label}
+      </Label>
       <Input
+        id={id}
         type="number"
         step={step}
         value={Number.isFinite(value) ? String(value) : ""}
-        className="mt-1"
+        className="data-mono mt-1 rounded-sm"
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      {error && <p className="mt-1 text-[11px] text-burst">{error}</p>}
+      {error && <p className="mt-1 text-[10.5px] text-burst">{error}</p>}
     </div>
   );
 }

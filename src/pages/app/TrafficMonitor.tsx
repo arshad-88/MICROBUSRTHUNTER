@@ -1,204 +1,357 @@
 import { useMemo, useState } from "react";
-import { MetricCard } from "@/components/MetricCard";
-import { StatusPill } from "@/components/StatusPill";
 import { ChartLegend, TrafficChart } from "@/components/TrafficChart";
-import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/StatusPill";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  EmptyState,
+  KeyValue,
+  Panel,
+  PanelHeader,
+  Stat,
+  Tag,
+  type Tone,
+} from "@/components/kit";
 import { useMonitoring } from "@/state/monitoring";
 import {
-  formatBytes,
+  formatClock,
+  formatMb,
   formatMbpsValue,
   formatMs,
   formatPercent,
 } from "@/lib/format";
-import { Activity, Pause, Play, TrendingUp, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Activity, Info, OctagonAlert, PackageX, Timer, Zap } from "lucide-react";
+
+const RANGES = [
+  { label: "2 s", value: 2000 },
+  { label: "4 s", value: 4000 },
+  { label: "6 s", value: 6000 },
+];
+
+interface BurstRow {
+  id: string;
+  detectedAt: number;
+  endedAt: number | null;
+  hostName: string;
+  sourceIp: string;
+  peakMbps: number | null;
+  severity: "moderate" | "severe";
+}
+
+/** Pair detection/end events so each row describes one burst without inventing data. */
+function buildBurstRows(
+  events: { id: string; type: string; timestamp: number; severity: string; hostName?: string; sourceIp?: string; rateMbps?: number }[],
+): BurstRow[] {
+  const rows: BurstRow[] = [];
+  const open = new Map<string, BurstRow>();
+  for (const event of events) {
+    const key = event.hostName ?? event.sourceIp ?? "flow";
+    if (event.type === "burst_detected") {
+      const row: BurstRow = {
+        id: event.id,
+        detectedAt: event.timestamp,
+        endedAt: null,
+        hostName: event.hostName ?? "unknown host",
+        sourceIp: event.sourceIp ?? "—",
+        peakMbps: event.rateMbps ?? null,
+        severity: event.severity === "critical" ? "severe" : "moderate",
+      };
+      rows.push(row);
+      open.set(key, row);
+    } else if (event.type === "burst_ended") {
+      const row = open.get(key);
+      if (row) {
+        row.endedAt = event.timestamp;
+        if (row.peakMbps === null) row.peakMbps = event.rateMbps ?? null;
+        open.delete(key);
+      }
+    }
+  }
+  return rows.reverse();
+}
 
 export default function TrafficMonitor() {
-  const { snapshot, start, stop } = useMonitoring();
-  const [rangeMs, setRangeMs] = useState("6000");
+  const { snapshot } = useMonitoring();
+  const [rangeMs, setRangeMs] = useState(4000);
 
   const history = useMemo(() => {
-    const range = Number(rangeMs);
-    if (historyEmpty(snapshot.history)) return snapshot.history;
+    if (snapshot.history.length === 0) return snapshot.history;
     const latest = snapshot.history[snapshot.history.length - 1].t;
-    return snapshot.history.filter((s) => s.t >= latest - range);
+    return snapshot.history.filter((s) => s.t >= latest - rangeMs);
   }, [snapshot.history, rangeMs]);
 
-  const bursts = snapshot.burstIntervals.slice(-12).reverse();
+  const burstRows = useMemo(() => buildBurstRows(snapshot.events), [snapshot.events]);
+  const dropMb = (snapshot.summary.totalDropBytes * 8) / 1_000_000;
+  const dropPct =
+    snapshot.latest && snapshot.latest.bytes > 0
+      ? (snapshot.latest.dropBytes / snapshot.latest.bytes) * 100
+      : 0;
+
+  const tiles: {
+    label: string;
+    value: string;
+    unit?: string;
+    tone: Tone;
+    icon: typeof Activity;
+    hint: string;
+  }[] = [
+    {
+      label: "Current rate",
+      value: formatMbpsValue(snapshot.latest?.rateMbps ?? 0),
+      unit: "Mbps",
+      tone: snapshot.burstActive ? "burst" : snapshot.running ? "live" : "neutral",
+      icon: Activity,
+      hint: `threshold ${formatMbpsValue(snapshot.latest?.thresholdMbps ?? 0)} Mbps`,
+    },
+    {
+      label: "Peak rate",
+      value: formatMbpsValue(snapshot.summary.peakMbps),
+      unit: "Mbps",
+      tone: "burst",
+      icon: Zap,
+      hint: "highest window observed this session",
+    },
+    {
+      label: "Average rate",
+      value: formatMbpsValue(snapshot.summary.avgMbps),
+      unit: "Mbps",
+      tone: "analysis",
+      icon: Activity,
+      hint: `over ${snapshot.history.length} windows`,
+    },
+    {
+      label: "Burst events",
+      value: String(snapshot.burstCount),
+      tone: snapshot.burstCount > 0 ? "burst" : "neutral",
+      icon: OctagonAlert,
+      hint: snapshot.burstActive ? "one burst in progress" : "none in progress",
+    },
+    {
+      label: "Packet drops",
+      value: formatMb(dropMb),
+      tone: dropMb > 0 ? "mitigated" : "recovered",
+      icon: PackageX,
+      hint:
+        dropMb > 0
+          ? `${formatPercent(dropPct)} of the current window · queue model`
+          : "no modelled drops",
+    },
+  ];
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-3">
-        <Button
-          type="button"
-          size="sm"
-          className="gap-1.5"
-          onClick={start}
-          disabled={snapshot.running}
-        >
-          <Play className="size-3.5" />
-          Resume monitoring
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="gap-1.5"
-          onClick={stop}
-          disabled={!snapshot.running}
-        >
-          <Pause className="size-3.5" />
-          Pause monitoring
-        </Button>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">Time range</span>
-          <Select value={rangeMs} onValueChange={setRangeMs}>
-            <SelectTrigger size="sm" className="w-[7rem]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2000">2 s</SelectItem>
-              <SelectItem value="4000">4 s</SelectItem>
-              <SelectItem value="6000">6 s (max history)</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="space-y-4">
+      <Panel className="overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {tiles.map((tile, i) => (
+            <div
+              key={tile.label}
+              className={cn(
+                "border-border/60",
+                i % 2 === 1 && "border-l",
+                i >= 2 && "border-t sm:border-t-0",
+                i === 2 && "sm:border-l",
+                i !== 0 && "lg:border-l lg:border-t-0",
+              )}
+            >
+              <Stat {...tile} size="sm" />
+            </div>
+          ))}
         </div>
-      </div>
+      </Panel>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Peak observed rate"
-          value={formatMbpsValue(snapshot.summary.peakMbps)}
-          unit="Mbps"
-          icon={TrendingUp}
-          tone={snapshot.burstActive ? "burst" : "default"}
-        />
-        <MetricCard
-          label="Average rate"
-          value={formatMbpsValue(snapshot.summary.avgMbps)}
-          unit="Mbps"
-          icon={Activity}
-        />
-        <MetricCard
-          label="Total bytes observed"
-          value={formatBytes(snapshot.summary.totalBytes)}
-          icon={Activity}
-          hint={`${snapshot.summary.totalPackets.toLocaleString("en-US")} packets`}
-        />
-        <MetricCard
-          label="Detected burst events"
-          value={String(snapshot.burstCount)}
-          icon={Zap}
-          tone={snapshot.burstCount > 0 ? "warning" : "default"}
-        />
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold tracking-tight">Traffic time series</p>
-            <p className="text-[11px] text-muted-foreground">
-              Window {snapshot.config.detection.windowMs} ms · baseline window{" "}
-              {snapshot.config.detection.baselineWindowMs} ms · multiplier{" "}
-              ×{snapshot.config.detection.baselineMultiplier}
-            </p>
-          </div>
-          <StatusPill tone={snapshot.running ? "success" : "idle"} pulse={snapshot.running}>
-            {snapshot.running ? "Sampling" : "Paused"}
-          </StatusPill>
-        </div>
-        <TrafficChart history={history} intervals={snapshot.burstIntervals} height={340} />
-        <div className="mt-3">
-          <ChartLegend />
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="mb-3 text-sm font-semibold tracking-tight">Burst intervals</p>
-          {bursts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No bursts detected yet under the current settings.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {bursts.map((interval, index) => (
-                <li
-                  key={`${interval.start}-${index}`}
-                  className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2 text-sm"
+      <div className="grid gap-4 xl:grid-cols-12">
+        <Panel className="overflow-hidden xl:col-span-9">
+          <PanelHeader
+            title="Traffic time series"
+            index="03"
+            icon={Activity}
+            note="Observed rate, rolling baseline and the configured burst threshold over logical simulation time."
+            actions={
+              <span className="flex items-center gap-2">
+                <span className="label-caps text-muted-foreground/60">range</span>
+                <span
+                  role="group"
+                  aria-label="Time range"
+                  className="flex overflow-hidden rounded-sm border border-border"
                 >
-                  <span className="text-muted-foreground">
-                    Start {(interval.start / 1000).toFixed(2)} s
-                  </span>
-                  <span className="text-muted-foreground">
-                    {interval.end !== null
-                      ? `Duration ${formatMs(interval.end - interval.start, 0)}`
-                      : "Ongoing"}
-                  </span>
-                  <StatusPill tone={interval.end === null ? "burst" : "normal"} pulse={interval.end === null}>
-                    {interval.end === null ? "Active" : "Recovered"}
-                  </StatusPill>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                  {RANGES.map((range) => (
+                    <button
+                      key={range.value}
+                      type="button"
+                      aria-pressed={rangeMs === range.value}
+                      onClick={() => setRangeMs(range.value)}
+                      className={cn(
+                        "data-mono px-2.5 py-1 text-[10.5px] transition-colors",
+                        rangeMs === range.value
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+                      )}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                </span>
+              </span>
+            }
+          />
+          <div className="px-4 py-3">
+            <TrafficChart
+              history={history}
+              intervals={snapshot.burstIntervals}
+              height={330}
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+              <ChartLegend />
+              <span className="flex items-center gap-2">
+                <StatusPill tone={snapshot.running ? "normal" : "idle"} pulse={snapshot.running}>
+                  {snapshot.running ? "sampling" : "paused"}
+                </StatusPill>
+                <Tag tone="neutral">simulated</Tag>
+              </span>
+            </div>
+          </div>
+          <p className="border-t border-border px-4 py-2.5 text-[10.5px] leading-4 text-muted-foreground">
+            Coral bands mark intervals the detector declared as bursts. A rate spike on this chart
+            is a rate measurement — it is not a measurement of switch-buffer occupancy.
+          </p>
+        </Panel>
 
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="mb-3 text-sm font-semibold tracking-tight">Detection configuration</p>
-          <dl className="grid grid-cols-2 gap-y-3 text-sm">
-            <Config label="Minimum rate">
-              {formatMbpsValue(snapshot.config.detection.minRateMbps, 0)} Mbps
-            </Config>
-            <Config label="Baseline multiplier">
-              ×{snapshot.config.detection.baselineMultiplier}
-            </Config>
-            <Config label="Sampling window">
-              {snapshot.config.detection.windowMs} ms
-            </Config>
-            <Config label="Persistence">
-              {snapshot.config.detection.persistenceWindows} windows
-            </Config>
-            <Config label="Recovery windows">
-              {snapshot.config.detection.recoveryWindows}
-            </Config>
-            <Config label="Burst cooldown">
-              {formatMs(snapshot.config.detection.cooldownMs, 0)}
-            </Config>
-            <Config label="Effective threshold">
-              {formatMbpsValue(snapshot.latest?.thresholdMbps ?? 0)} Mbps
-            </Config>
-            <Config label="Advantage over baseline">
-              {snapshot.latest && snapshot.latest.baselineMbps > 0
-                ? formatPercent(
-                    ((snapshot.latest.rateMbps - snapshot.latest.baselineMbps) /
-                      snapshot.latest.baselineMbps) *
-                      100,
-                  )
-                : "—"}
-            </Config>
-          </dl>
+        <div className="space-y-4 xl:col-span-3">
+          <Panel className="overflow-hidden">
+            <PanelHeader title="Detector in force" icon={Timer} />
+            <div className="px-4 py-3">
+              <div className="divide-y divide-border/60">
+                <KeyValue label="Sampling window" mono>
+                  {snapshot.config.detection.windowMs} ms
+                </KeyValue>
+                <KeyValue label="Minimum rate" mono>
+                  {snapshot.config.detection.minRateMbps} Mbps
+                </KeyValue>
+                <KeyValue label="Baseline multiplier" mono>
+                  ×{snapshot.config.detection.baselineMultiplier}
+                </KeyValue>
+                <KeyValue label="Baseline window" mono>
+                  {snapshot.config.detection.baselineWindowMs} ms
+                </KeyValue>
+                <KeyValue label="Persistence" mono>
+                  {snapshot.config.detection.persistenceWindows} windows
+                </KeyValue>
+                <KeyValue label="Recovery" mono>
+                  {snapshot.config.detection.recoveryWindows} windows
+                </KeyValue>
+                <KeyValue label="Burst cooldown" mono>
+                  {formatMs(snapshot.config.detection.cooldownMs, 0)}
+                </KeyValue>
+                <KeyValue label="Live threshold" mono>
+                  {formatMbpsValue(snapshot.latest?.thresholdMbps ?? 0)} Mbps
+                </KeyValue>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel className="overflow-hidden">
+            <PanelHeader title="Observation" icon={Info} />
+            <div className="space-y-2 px-4 py-3 text-[11px] leading-5 text-muted-foreground">
+              <p>
+                Advantage over baseline:{" "}
+                <span className="data-mono text-foreground">
+                  {snapshot.latest && snapshot.latest.baselineMbps > 0
+                    ? formatPercent(
+                        ((snapshot.latest.rateMbps - snapshot.latest.baselineMbps) /
+                          snapshot.latest.baselineMbps) *
+                          100,
+                      )
+                    : "—"}
+                </span>
+              </p>
+              <p>
+                A burst is declared only when the measured rate exceeds both the absolute minimum
+                and baseline × multiplier for the persistence window.
+              </p>
+              <p className="text-muted-foreground/70">
+                Windows are simulated deterministically from seed{" "}
+                {snapshot.config.simulation.seed}.
+              </p>
+            </div>
+          </Panel>
         </div>
       </div>
-    </div>
-  );
-}
 
-function historyEmpty(history: unknown[]): boolean {
-  return history.length === 0;
-}
-
-function Config({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 font-medium">{children}</dd>
+      <Panel className="overflow-hidden">
+        <PanelHeader
+          title="Recent burst events"
+          index="04"
+          icon={OctagonAlert}
+          note="Every detected burst with the host that caused it, the observed peak and whether it has recovered."
+          actions={<Tag tone="neutral">{burstRows.length} recorded</Tag>}
+        />
+        {burstRows.length === 0 ? (
+          <EmptyState
+            icon={OctagonAlert}
+            title="No bursts detected yet"
+            description="Under the current settings no window has exceeded the adaptive threshold. Inject a burst from the operations strip to exercise the detector."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Detected", "Host", "Source IP", "Peak rate", "Severity", "Status"].map(
+                    (head) => (
+                      <th
+                        key={head}
+                        className="label-caps px-4 py-2 font-medium text-muted-foreground/70"
+                      >
+                        {head}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {burstRows.slice(0, 14).map((row) => (
+                  <tr key={row.id} className="border-b border-border/60 last:border-0">
+                    <td className="data-mono whitespace-nowrap px-4 py-2.5 text-[11px] text-muted-foreground">
+                      {formatClock(row.detectedAt)}
+                    </td>
+                    <td className="px-4 py-2.5 text-[11.5px] text-foreground">
+                      {row.hostName}
+                    </td>
+                    <td className="data-mono whitespace-nowrap px-4 py-2.5 text-[11px] text-muted-foreground">
+                      {row.sourceIp}
+                    </td>
+                    <td className="data-mono px-4 py-2.5 text-[11.5px] text-burst">
+                      {row.peakMbps !== null ? `${formatMbpsValue(row.peakMbps)} Mbps` : "—"}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <StatusPill tone={row.severity === "severe" ? "burst" : "warning"}>
+                        {row.severity}
+                      </StatusPill>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {row.endedAt === null ? (
+                        <StatusPill tone="burst" pulse>
+                          active
+                        </StatusPill>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <StatusPill tone="success">recovered</StatusPill>
+                          <span className="data-mono text-[10.5px] text-muted-foreground">
+                            {formatMs(row.endedAt - row.detectedAt, 0)}
+                          </span>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="border-t border-border px-4 py-2.5 text-[10.5px] text-muted-foreground">
+          Status is derived from the detector's own burst start/end events — the interface does not
+          decide on its own that a burst has recovered.
+        </p>
+      </Panel>
     </div>
   );
 }

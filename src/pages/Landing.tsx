@@ -1,120 +1,196 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { MHMark } from "@/components/Wordmark";
 import {
   Activity,
   ArrowRight,
   FlaskConical,
+  Gauge,
   Network,
   ScrollText,
   ShieldCheck,
   Share2,
+  Timer,
   Waves,
   Zap,
 } from "lucide-react";
-import { Link } from "react-router";
-import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
 
-const FEATURES = [
-  {
-    icon: Network,
-    title: "Interactive topology",
-    body: "An SVG data-center fabric where every host and link derives its state from the same window data as the charts.",
-  },
+const CAPABILITIES = [
   {
     icon: Waves,
-    title: "Microburst detection",
-    body: "A real detection algorithm: rolling baseline, absolute minimum rate and baseline multiplier, persistence and cooldown.",
+    title: "Detector that actually decides",
+    body: "Rolling baseline, absolute minimum rate and a baseline multiplier combined with persistence, cooldown and recovery windows — a burst is declared only when the measurement justifies it.",
+  },
+  {
+    icon: Network,
+    title: "Fabric plane, not a diagram",
+    body: "A patch-panel map where stroke weight follows the measured rate, colour follows detector state, and each port reports its own counters and enforced policy.",
   },
   {
     icon: Share2,
-    title: "Source contribution",
-    body: "Rank the sources responsible for a burst by measured byte share — without mislabelling legitimate bulk traffic as malicious.",
+    title: "Attribution without accusation",
+    body: "Rank sources by their byte share inside the burst window, with per-source history and recent events. Volume is reported as volume — never as intent.",
   },
   {
     icon: ShieldCheck,
-    title: "Adaptive mitigation",
-    body: "A rate cap applied inside the traffic model, with before/after comparison, recovery and maximum-duration safety.",
+    title: "Cause and effect on the policy",
+    body: "Detection → attribution → policy → cap → verification → recovery, with a before/after comparison computed on the same model the charts use.",
   },
   {
     icon: FlaskConical,
     title: "Reproducible experiments",
-    body: "Three seeded scenarios — normal, burst, burst-with-mitigation — with exportable results and honest reporting.",
+    body: "Three seeded scenarios — normal, burst, burst with adaptive mitigation — stored and exportable so a reviewer can compare numbers rather than trust a screenshot.",
   },
   {
     icon: ScrollText,
-    title: "Auditable event log",
-    body: "Every detection, policy change and recovery is recorded and exportable to CSV for the project review.",
+    title: "Auditable event timeline",
+    body: "Every detection, policy change, recovery and failure is recorded verbatim and exported to CSV for the project review.",
   },
 ];
 
-const SCENARIOS = [
-  {
-    tag: "Experiment 1",
-    title: "Normal traffic",
-    body: "Steady multi-source load, no burst. Establishes baseline rate, latency and drop behaviour.",
-  },
-  {
-    tag: "Experiment 2",
-    title: "Burst, no mitigation",
-    body: "A reproducible microburst fires; the detector records it and traffic stays uncapped.",
-  },
-  {
-    tag: "Experiment 3",
-    title: "Burst + mitigation",
-    body: "The same burst as Experiment 2, but the adaptive policy caps the offending flow.",
-  },
+const SPECS = [
+  { label: "Sampling window", value: "10", unit: "ms" },
+  { label: "Minimum rate", value: "80", unit: "Mbps" },
+  { label: "Baseline multiplier", value: "×3", unit: "" },
+  { label: "Deterministic seed", value: "1337", unit: "" },
 ];
 
-function HeroDiagram() {
-  const nodes = [
-    { x: 60, y: 50, label: "H1" },
-    { x: 60, y: 130, label: "H2" },
-    { x: 60, y: 210, label: "H3" },
-    { x: 210, y: 130, label: "S1" },
-    { x: 350, y: 130, label: "R1" },
+function HeroFabric() {
+  const ports = [
+    { y: 66, label: "H1", burst: false },
+    { y: 150, label: "H2", burst: false },
+    { y: 234, label: "H3", burst: true },
   ];
+  const hex = `300,${150 - 46} ${300 + 39.8},${150 - 23} ${300 + 39.8},${150 + 23} 300,${150 + 46} ${300 - 39.8},${150 + 23} ${300 - 39.8},${150 - 23}`;
   return (
-    <div className="noc-grid rounded-xl border border-border bg-[oklch(0.14_0.02_255)] p-2">
-      <svg viewBox="0 0 420 260" className="h-auto w-full">
-        {[
-          ["M 60 50 L 210 130", "stroke-info/50"],
-          ["M 60 130 L 210 130", "stroke-info/50"],
-          ["M 60 210 L 210 130", "stroke-burst"],
-          ["M 210 130 L 350 130", "stroke-warning"],
-        ].map(([d, cls], i) => (
-          <path key={i} d={d} fill="none" strokeWidth={2} className={cls} />
-        ))}
-        <path d="M 60 210 L 210 130" fill="none" strokeWidth={2} className="stroke-burst mbh-flow" />
-        {nodes.map((n) => (
-          <g key={n.label}>
-            <circle
-              cx={n.x}
-              cy={n.y}
-              r={22}
-              className={
-                n.label === "H3"
-                  ? "fill-burst/15 stroke-burst"
-                  : "fill-card stroke-border"
-              }
-              strokeWidth={1.5}
-            />
-            <text
-              x={n.x}
-              y={n.y + 4}
-              textAnchor="middle"
-              className="fill-foreground text-[11px] font-semibold"
-            >
-              {n.label}
-            </text>
-          </g>
-        ))}
-        <circle r={3} className="fill-burst">
-          <animateMotion dur="1.1s" repeatCount="indefinite" path="M 60 210 L 210 130" />
-        </circle>
-        <circle r={3} className="fill-warning">
-          <animateMotion dur="1.4s" repeatCount="indefinite" path="M 210 130 L 350 130" />
-        </circle>
-      </svg>
+    <div className="relative overflow-hidden rounded-md border border-border bg-[oklch(0.145_0.014_262)] panel-edge">
+      <div className="fabric-grid-fine">
+        <svg viewBox="0 0 520 320" className="h-auto w-full" role="img" aria-label="Fabric plane with one source emitting a microburst">
+          <defs>
+            <linearGradient id="hero-burst" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--chart-5)" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="var(--burst)" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+
+          <text x="34" y="30" className="label-caps fill-muted-foreground/50 text-[9px]">
+            source bank
+          </text>
+          <text x="300" y="82" textAnchor="middle" className="label-caps fill-muted-foreground/50 text-[9px]">
+            aggregation
+          </text>
+          <text x="440" y="90" textAnchor="middle" className="label-caps fill-muted-foreground/50 text-[9px]">
+            destination
+          </text>
+
+          {ports.map((port) => {
+            const d = `M 150 ${port.y} C 210 ${port.y}, 226 ${150}, 260.2 ${150}`;
+            return (
+              <g key={port.label}>
+                <path d={d} fill="none" strokeWidth={1} className="stroke-border/70" />
+                <path
+                  d={d}
+                  fill="none"
+                  strokeWidth={port.burst ? 3.4 : 2}
+                  strokeLinecap="round"
+                  className={port.burst ? "stroke-burst mbh-flow" : "stroke-primary/80 mbh-flow"}
+                  style={{ animationDuration: port.burst ? "0.7s" : "1.4s" }}
+                />
+              </g>
+            );
+          })}
+
+          {/* uplink */}
+          <path d="M 339.8 150 L 388 150" fill="none" strokeWidth={7} className="stroke-border/70" />
+          <path
+            d="M 339.8 150 L 388 150"
+            fill="none"
+            strokeWidth={4}
+            strokeLinecap="round"
+            className="stroke-warning mbh-flow"
+          />
+
+          {/* source ports */}
+          {ports.map((port) => (
+            <g key={`p-${port.label}`}>
+              <rect
+                x={40}
+                y={port.y - 22}
+                width={110}
+                height={44}
+                rx={3}
+                className="fill-surface stroke-border"
+                strokeWidth={1}
+              />
+              <rect
+                x={40}
+                y={port.y - 22}
+                width={3}
+                height={44}
+                rx={1.5}
+                className={port.burst ? "fill-burst" : "fill-primary"}
+              />
+              <text x={52} y={port.y - 4} className="fill-foreground text-[11px] font-semibold">
+                {port.label}
+              </text>
+              <text
+                x={52}
+                y={port.y + 10}
+                className={
+                  port.burst
+                    ? "data-mono fill-burst text-[9px]"
+                    : "data-mono fill-muted-foreground text-[9px]"
+                }
+              >
+                {port.burst ? "214.6 Mbps" : port.label === "H1" ? "18.2 Mbps" : "14.4 Mbps"}
+              </text>
+            </g>
+          ))}
+
+          {/* switch */}
+          <polygon points={hex} className="fill-surface stroke-border" strokeWidth={1.2} />
+          <polygon
+            points="300,118 327.7,134 327.7,166 300,182 272.3,166 272.3,134"
+            className="fill-none stroke-border/70"
+            strokeWidth={1}
+          />
+          <text x={300} y={146} textAnchor="middle" className="fill-foreground text-[12px] font-semibold">
+            S1
+          </text>
+          <text x={300} y={160} textAnchor="middle" className="data-mono fill-muted-foreground text-[8px]">
+            10.0.0.1
+          </text>
+
+          {/* destination */}
+          <rect x={388} y={112} width={104} height={76} rx={3} className="fill-surface stroke-border" strokeWidth={1.2} />
+          <rect x={388} y={112} width={104} height={16} rx={3} className="fill-surface-2" />
+          <text x={396} y={135} className="fill-foreground text-[11px] font-semibold">
+            R1
+          </text>
+          <text x={396} y={148} className="data-mono fill-muted-foreground text-[8px]">
+            10.0.0.10
+          </text>
+          <rect x={396} y={158} width={88} height={4} rx={2} className="fill-muted/70" />
+          <rect x={396} y={158} width={72} height={4} rx={2} className="fill-burst" />
+          <text x={396} y={178} className="data-mono fill-muted-foreground text-[8px]">
+            queue pressure
+          </text>
+        </svg>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-2.5">
+        <span className="flex items-center gap-2">
+          <Zap className="size-3.5 text-burst" />
+          <span className="label-caps text-burst">microburst detected</span>
+        </span>
+        <span className="data-mono text-[10.5px] text-muted-foreground">
+          H3 · 10.0.1.13 · 214.6 Mbps vs 96.0 Mbps threshold
+        </span>
+        <span className="label-caps ml-auto rounded-sm border border-warning/40 bg-warning/[0.08] px-2 py-[3px] text-warning">
+          cap 35 Mbps enforced
+        </span>
+      </div>
     </div>
   );
 }
@@ -122,184 +198,285 @@ function HeroDiagram() {
 export default function Landing() {
   const { isAuthenticated } = useAuth();
   const primaryHref = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
-  const primaryLabel = isAuthenticated ? "Open console" : "Launch the console";
+  const primaryLabel = isAuthenticated ? "Open the console" : "Launch the console";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-4 py-3 lg:px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary/10">
-              <Network className="size-4 text-primary" />
+            <MHMark className="size-7" active />
+            <span className="text-[13px] font-semibold tracking-tight">
+              Microburst<span className="text-primary">Hunter</span>
             </span>
-            <span className="text-sm font-bold tracking-tight">MicroburstHunter</span>
           </Link>
-          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-            <a href="#capabilities" className="hover:text-foreground">Capabilities</a>
-            <a href="#detection" className="hover:text-foreground">Detection</a>
-            <a href="#experiments" className="hover:text-foreground">Experiments</a>
+          <nav className="ml-4 hidden items-center gap-6 text-[11.5px] text-muted-foreground md:flex">
+            <a href="#capabilities" className="transition-colors hover:text-foreground">
+              Capabilities
+            </a>
+            <a href="#detection" className="transition-colors hover:text-foreground">
+              Detection
+            </a>
+            <a href="#experiments" className="transition-colors hover:text-foreground">
+              Experiments
+            </a>
           </nav>
-          <Button asChild size="sm" className="gap-1.5">
-            <Link to={primaryHref}>
-              {primaryLabel}
-              <ArrowRight className="size-3.5" />
-            </Link>
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="label-caps hidden rounded-sm border border-border bg-surface px-2 py-[5px] text-muted-foreground lg:inline">
+              Computer Networks coursework
+            </span>
+            <Button asChild size="sm" className="gap-1.5 rounded-sm">
+              <Link to={primaryHref}>
+                {primaryLabel}
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:py-24">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-              <Activity className="size-3.5 text-primary" />
-              Computer Networks course project · working prototype
-            </span>
-            <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight lg:text-5xl">
-              Detect and mitigate{" "}
-              <span className="text-primary">microbursts</span> in data-center networks
-            </h1>
-            <p className="mt-5 max-w-xl text-muted-foreground">
-              MicroburstHunter is a network operations console for detecting sub-millisecond traffic
-              spikes, ranking the sources responsible and applying adaptive rate limits — with a
-              reproducible simulator, experiment comparison and a separate Python/Scapy toolkit for
-              real capture and Linux <code className="text-foreground/90">tc</code> shaping.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button asChild className="gap-1.5">
-                <Link to={primaryHref}>
-                  {primaryLabel}
-                  <ArrowRight className="size-3.5" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <a href="#detection">See the detection engine</a>
-              </Button>
-            </div>
-            <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Window</dt>
-                <dd className="mt-0.5 text-lg font-semibold">10 ms</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Min rate</dt>
-                <dd className="mt-0.5 text-lg font-semibold">80 Mbps</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Baseline ×</dt>
-                <dd className="mt-0.5 text-lg font-semibold">3×</dd>
-              </div>
-            </dl>
-          </motion.div>
+        {/* ------------------------------- hero ------------------------------- */}
+        <section className="mx-auto max-w-[1180px] px-4 pb-14 pt-12 lg:px-6 lg:pb-20 lg:pt-16">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_460px] lg:gap-14">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+            >
+              <span className="flex items-center gap-2">
+                <span className="h-[2px] w-6 bg-primary" />
+                <span className="label-caps text-muted-foreground">
+                  microburst observability
+                </span>
+              </span>
+              <h1 className="mt-5 text-[38px] font-semibold leading-[1.08] tracking-tight lg:text-[50px]">
+                Catch the burst
+                <br />
+                before the buffer does.
+              </h1>
+              <p className="mt-5 max-w-xl text-[13.5px] leading-6 text-muted-foreground">
+                MicroburstHunter is a network operations console for sub-millisecond traffic
+                spikes: a real detection algorithm, source attribution inside the burst window,
+                adaptive rate-cap policy with before/after verification, and reproducible
+                experiments — all driven by one deterministic traffic model.
+              </p>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <HeroDiagram />
-            <p className="mt-3 text-center text-[11px] text-muted-foreground">
-              Burst traffic (red) on H3 triggers detection and a mitigation cap on the uplink (amber).
-            </p>
-          </motion.div>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <Button asChild className="gap-1.5 rounded-sm">
+                  <Link to={primaryHref}>
+                    {primaryLabel}
+                    <ArrowRight className="size-3.5" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-sm">
+                  <a href="#detection">Read the detection engine</a>
+                </Button>
+              </div>
+
+              <dl className="mt-9 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-6 sm:grid-cols-4">
+                {SPECS.map((spec) => (
+                  <div key={spec.label}>
+                    <dt className="label-caps text-muted-foreground/70">{spec.label}</dt>
+                    <dd className="readout mt-1.5 text-[19px] font-semibold text-foreground">
+                      {spec.value}
+                      {spec.unit && (
+                        <span className="data-mono ml-1 text-[10.5px] font-normal text-muted-foreground">
+                          {spec.unit}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.08 }}
+            >
+              <HeroFabric />
+              <p className="mt-3 text-[10.5px] leading-4 text-muted-foreground/70">
+                Same visual language as the console: stroke weight is the measured rate, coral is a
+                detector-declared burst, amber is an enforced cap.
+              </p>
+            </motion.div>
+          </div>
         </section>
 
-        <section id="capabilities" className="border-y border-border bg-card/40 py-16">
-          <div className="mx-auto max-w-6xl px-4">
-            <h2 className="text-2xl font-bold tracking-tight">What the console does</h2>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Not a static dashboard: the detection, ranking and mitigation run as real code against
-              a shared simulation state.
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map((feature) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 12 }}
+        {/* --------------------------- capabilities --------------------------- */}
+        <section id="capabilities" className="border-y border-border bg-surface/40 py-14 lg:py-16">
+          <div className="mx-auto max-w-[1180px] px-4 lg:px-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <span className="flex items-center gap-2">
+                  <span className="h-[2px] w-6 bg-primary" />
+                  <span className="label-caps text-muted-foreground">capabilities</span>
+                </span>
+                <h2 className="mt-3 text-[26px] font-semibold tracking-tight">
+                  Built as an instrument, not a dashboard
+                </h2>
+              </div>
+              <p className="max-w-md text-[12px] leading-5 text-muted-foreground">
+                Detection, attribution and mitigation run as real code against a shared state, so
+                every panel agrees with every other panel.
+              </p>
+            </div>
+
+            <div className="mt-9 grid gap-0 border border-border sm:grid-cols-2 lg:grid-cols-3">
+              {CAPABILITIES.map((item, i) => (
+                <motion.article
+                  key={item.title}
+                  initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35 }}
-                  className="rounded-lg border border-border bg-card p-5"
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.3, delay: (i % 3) * 0.05 }}
+                  className="border-b border-border px-5 py-6 last:border-b-0 sm:border-r lg:[&:nth-child(3n)]:border-r-0 lg:[&:nth-child(4)]:border-b-0 lg:[&:nth-child(5)]:border-b-0 lg:[&:nth-child(6)]:border-b-0"
                 >
-                  <feature.icon className="size-5 text-primary" />
-                  <h3 className="mt-3 text-sm font-semibold tracking-tight">{feature.title}</h3>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{feature.body}</p>
-                </motion.div>
+                  <div className="flex items-center justify-between">
+                    <item.icon className="size-4 text-primary" />
+                    <span className="data-mono text-[10px] text-muted-foreground/50">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-[13.5px] font-medium tracking-tight">{item.title}</h3>
+                  <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">{item.body}</p>
+                </motion.article>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="detection" className="mx-auto max-w-6xl px-4 py-16">
-          <div className="grid gap-10 lg:grid-cols-2">
+        {/* ----------------------------- detection ---------------------------- */}
+        <section id="detection" className="mx-auto max-w-[1180px] px-4 py-14 lg:px-6 lg:py-16">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">A real detection algorithm</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Each sampling window collects bytes and converts them to a rate. A burst is declared
-                only when the measured rate exceeds both the absolute minimum and the rolling
-                baseline multiplied by the configured factor, and persists for several consecutive
-                windows. Recovery and cooldown rules end the event.
+              <span className="flex items-center gap-2">
+                <span className="h-[2px] w-6 bg-primary" />
+                <span className="label-caps text-muted-foreground">detection engine</span>
+              </span>
+              <h2 className="mt-3 text-[26px] font-semibold tracking-tight">
+                A threshold that adapts, then persists
+              </h2>
+              <p className="mt-4 text-[12.5px] leading-6 text-muted-foreground">
+                Each window converts observed bytes into a rate and compares it against the higher
+                of the absolute minimum and the rolling baseline multiplied by the configured
+                factor. A burst is declared only after the qualifying condition persists for the
+                configured number of windows — and only ends after sustained quiet.
               </p>
-              <div className="mt-6 rounded-lg border border-border bg-[oklch(0.15_0.02_255)] p-4 font-mono text-xs text-muted-foreground">
-                rateMbps = bytes × 8 ÷ (windowMs / 1000) ÷ 1,000,000
-                <br />
-                <span className="text-primary">threshold</span> = max(minRate, baseline × multiplier)
-                <br />
-                <span className="text-burst">burst</span> = rate &gt; threshold for{" "}
-                persistence windows
+
+              <div className="mt-6 rounded-md border border-border bg-[oklch(0.145_0.014_262)] px-4 py-4">
+                <pre className="data-mono overflow-x-auto text-[11px] leading-6 text-muted-foreground">
+{`rateMbps  = bytes × 8 ÷ (windowMs ÷ 1000) ÷ 1,000,000
+threshold = max(minRate, baseline × multiplier)
+burst     = rate > threshold for persistence windows
+recovery  = rate ≤ threshold for recovery windows`}
+                </pre>
               </div>
             </div>
+
             <div className="space-y-3">
               {[
-                ["Queue congestion is not measured", "A rate spike alone does not prove switch-buffer overflow; the console separates detected bursts from simulated drops."],
-                ["No fake live status", "The browser build reports simulated data only. Real capture requires the Python backend."],
-                ["Configurable, not universal", "10 ms / 80 Mbps / 3× are educational defaults, not a universal definition of a microburst."],
-              ].map(([title, body]) => (
-                <div key={title} className="rounded-lg border border-border bg-card p-4">
-                  <p className="flex items-center gap-2 text-sm font-semibold">
-                    <Zap className="size-4 text-warning" />
-                    {title}
+                {
+                  icon: Gauge,
+                  title: "Queue congestion is not measured",
+                  body: "A rate spike is a rate measurement. Switch-buffer occupancy is a separate metric, and the console never presents the two as the same thing.",
+                },
+                {
+                  icon: Activity,
+                  title: "No fabricated live status",
+                  body: "The browser build reports simulated data only and says so on every screen. Real capture requires the Python/Scapy backend.",
+                },
+                {
+                  icon: Timer,
+                  title: "Configurable, not universal",
+                  body: "10 ms, 80 Mbps and ×3 are educational defaults chosen to make a microburst visible — not a universal definition of the phenomenon.",
+                },
+              ].map((note) => (
+                <div
+                  key={note.title}
+                  className="rounded-md border border-border bg-surface px-4 py-3.5 panel-edge"
+                >
+                  <p className="flex items-center gap-2 text-[12.5px] font-medium text-foreground">
+                    <note.icon className="size-3.5 text-warning" />
+                    {note.title}
                   </p>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{body}</p>
+                  <p className="mt-1.5 text-[11.5px] leading-5 text-muted-foreground">{note.body}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="experiments" className="border-y border-border bg-card/40 py-16">
-          <div className="mx-auto max-w-6xl px-4">
-            <h2 className="text-2xl font-bold tracking-tight">Three reproducible scenarios</h2>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Identical generator settings and PRNG seed per scenario, so results are comparable and
-              exportable for the project review.
-            </p>
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {SCENARIOS.map((scenario) => (
-                <div key={scenario.tag} className="rounded-lg border border-border bg-card p-5">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-                    {scenario.tag}
-                  </span>
-                  <h3 className="mt-2 text-base font-semibold tracking-tight">{scenario.title}</h3>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{scenario.body}</p>
+        {/* ---------------------------- experiments --------------------------- */}
+        <section id="experiments" className="border-y border-border bg-surface/40 py-14 lg:py-16">
+          <div className="mx-auto max-w-[1180px] px-4 lg:px-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <span className="flex items-center gap-2">
+                  <span className="h-[2px] w-6 bg-primary" />
+                  <span className="label-caps text-muted-foreground">review flow</span>
+                </span>
+                <h2 className="mt-3 text-[26px] font-semibold tracking-tight">
+                  Three runs, one seed, comparable numbers
+                </h2>
+              </div>
+              <p className="max-w-md text-[12px] leading-5 text-muted-foreground">
+                Walk into the review with the normal case, the burst case and the mitigated burst
+                side by side — exportable as CSV.
+              </p>
+            </div>
+
+            <div className="mt-9 grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  id: "01",
+                  title: "Normal traffic",
+                  body: "Steady multi-source load with no burst. Establishes baseline rate, modelled latency and near-zero drops.",
+                  tone: "text-primary",
+                },
+                {
+                  id: "02",
+                  title: "Burst, no mitigation",
+                  body: "A reproducible microburst fires from the configured host. The detector declares it and traffic stays uncapped.",
+                  tone: "text-burst",
+                },
+                {
+                  id: "03",
+                  title: "Burst + adaptive mitigation",
+                  body: "The identical burst, but the policy caps the offending flow once detection completes. Compare peak, drops and latency.",
+                  tone: "text-warning",
+                },
+              ].map((scenario) => (
+                <div
+                  key={scenario.id}
+                  className="rounded-md border border-border bg-background/60 px-5 py-5 panel-edge"
+                >
+                  <span className={`data-mono text-[11px] ${scenario.tone}`}>{scenario.id}</span>
+                  <h3 className="mt-3 text-[14px] font-medium tracking-tight">{scenario.title}</h3>
+                  <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">
+                    {scenario.body}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-16">
-          <div className="rounded-xl border border-border bg-card p-8 text-center">
-            <h2 className="text-2xl font-bold tracking-tight">Open the operations console</h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-              Sign in, start monitoring, inject a burst and watch the detector, topology and
-              mitigation respond together.
-            </p>
-            <Button asChild size="lg" className="mt-6 gap-1.5">
+        {/* -------------------------------- cta ------------------------------- */}
+        <section className="mx-auto max-w-[1180px] px-4 py-16 lg:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-6 rounded-md border border-border bg-surface px-6 py-8 panel-edge">
+            <div>
+              <h2 className="text-[22px] font-semibold tracking-tight">
+                Open the operations console
+              </h2>
+              <p className="mt-2 max-w-xl text-[12px] leading-5 text-muted-foreground">
+                Start monitoring, inject a reproducible burst and watch the fabric plane, the
+                detector, the source ranking and the mitigation policy respond together.
+              </p>
+            </div>
+            <Button asChild size="lg" className="gap-1.5 rounded-sm">
               <Link to={primaryHref}>
                 {primaryLabel}
                 <ArrowRight className="size-4" />
@@ -309,10 +486,16 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-border px-4 py-6">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <span>MicroburstHunter — prototype for a Computer Networks course project.</span>
-          <span>Simulated measurements only · live capture lives in the Python backend.</span>
+      <footer className="border-t border-border px-4 py-5 lg:px-6">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-2">
+          <span className="label-caps text-muted-foreground/60">
+            MicroburstHunter · Computer Networks coursework
+          </span>
+          <span className="text-[10.5px] text-muted-foreground/70">
+            Simulated measurements in the browser · live capture and Linux{" "}
+            <code className="text-muted-foreground">tc</code> shaping live in the separate Python
+            backend
+          </span>
         </div>
       </footer>
     </div>

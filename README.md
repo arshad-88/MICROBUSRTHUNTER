@@ -38,6 +38,14 @@ bun test             # simulation unit + integration tests
 Open the app, click **Launch the console**, sign in (email OTP or *Continue as
 Guest*), and you land on `/dashboard`.
 
+**Running without Convex.** The console computes everything in the browser, so
+if `VITE_CONVEX_URL` is not set the app starts with a **local session** instead
+of failing: the top status bar reports `session LOCAL (NO BACKEND)` and the
+sign-in page says no email is sent. Sign-in, the `RequireAuth` gate and the
+signed-in routes all still work — they just do not leave the browser. Set
+`VITE_CONVEX_URL` (and run `bunx convex dev` once to generate
+`src/convex/_generated`) to switch back to real accounts.
+
 ## 3. The application
 
 Left sidebar navigation, a top status bar (monitoring state, data source,

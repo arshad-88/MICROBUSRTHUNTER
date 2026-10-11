@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { MonitoringProvider } from "@/state/monitoring";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { AppAuthProvider } from "@/state/auth";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
@@ -91,9 +91,16 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-
+/**
+ * Convex client.
+ *
+ * The app works without one. Everything the console measures is computed in the
+ * browser; Convex only carries the account and the signed-in gate. So a missing
+ * `VITE_CONVEX_URL` switches the app to a local session (see `@/state/auth`)
+ * instead of failing, and the UI labels that state.
+ */
+const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
 function RouteSyncer() {
   const location = useLocation();
@@ -125,7 +132,7 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexAuthProvider client={convex}>
+      <AppAuthProvider client={convex}>
         <BrowserRouter>
           <RouteSyncer />
           <MonitoringProvider>
@@ -162,7 +169,7 @@ createRoot(document.getElementById("root")!).render(
           </MonitoringProvider>
         </BrowserRouter>
         <Toaster />
-      </ConvexAuthProvider>
+      </AppAuthProvider>
     </RootErrorBoundary>
   </StrictMode>,
 );

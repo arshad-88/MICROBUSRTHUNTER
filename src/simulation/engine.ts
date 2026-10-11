@@ -748,14 +748,29 @@ export class SimulationEngine {
     this.removeMitigation("manual");
   }
 
-  simulateBurst(hostId?: string, opts?: { peakMbps?: number; durationMs?: number }): void {
+  /**
+   * Schedule a reproducible burst on the traffic model.
+   *
+   * `startDelayMs` postpones the onset (in logical ms). The default is one
+   * sampling window; the caller can push it further out so the detector has
+   * undisturbed history to compare against. This only changes *when* the burst
+   * starts — the detection rule and threshold are untouched.
+   */
+  simulateBurst(
+    hostId?: string,
+    opts?: { peakMbps?: number; durationMs?: number; startDelayMs?: number },
+  ): void {
     const target = hostId ?? this.config.simulation.burstHostId;
     const duration = opts?.durationMs ?? this.config.simulation.burstDurationMs;
     const peak = opts?.peakMbps ?? this.config.simulation.burstPeakMbps;
+    const startDelay = Math.max(
+      this.config.detection.windowMs,
+      opts?.startDelayMs ?? this.config.detection.windowMs,
+    );
     this.scheduledBursts.push({
       hostId: target,
-      startSim: this.simTime + this.config.detection.windowMs,
-      endSim: this.simTime + duration,
+      startSim: this.simTime + startDelay,
+      endSim: this.simTime + startDelay + duration,
       peakMbps: peak,
       origin: "manual",
     });

@@ -6,15 +6,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useMonitoring } from "@/state/monitoring";
-import { AlertTriangle, Pause, Play, RotateCcw, ShieldOff, ShieldCheck, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  AlertTriangle,
+  RotateCcw,
+  ShieldOff,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
+function Group({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <span className="label-caps hidden text-muted-foreground/60 xl:inline">
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Operations strip: inject a reproducible burst, restore normal traffic, reset
+ * the session and arm/disarm automatic mitigation. Every control drives the
+ * simulation engine through the monitoring context.
+ */
 export function ControlBar({ compact = false }: { compact?: boolean }) {
   const {
     snapshot,
-    start,
-    stop,
     reset,
     simulateBurst,
     restoreNormal,
@@ -26,42 +56,19 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
   const mitigationEnabled = snapshot.config.mitigation.autoEnabled;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-3">
-      <Button
-        type="button"
-        size="sm"
-        className="gap-1.5"
-        onClick={() => {
-          start();
-          toast.success("Monitoring started");
-        }}
-        disabled={snapshot.running}
-      >
-        <Play className="size-3.5" />
-        Start Monitoring
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="gap-1.5"
-        onClick={stop}
-        disabled={!snapshot.running}
-      >
-        <Pause className="size-3.5" />
-        Stop Monitoring
-      </Button>
-
-      <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
-
-      <div className="flex items-center gap-2">
+    <div className="panel-edge flex flex-wrap items-center gap-x-4 gap-y-3 rounded-md border border-border bg-surface px-3.5 py-3">
+      <Group label="inject">
         <Select value={snapshot.selectedBurstHostId} onValueChange={setBurstHost}>
-          <SelectTrigger size="sm" className="h-8 w-[8.5rem]" aria-label="Burst source host">
+          <SelectTrigger
+            size="sm"
+            className="h-8 w-[9.5rem] rounded-sm data-mono text-[11px]"
+            aria-label="Burst source host"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {sources.map((host) => (
-              <SelectItem key={host.id} value={host.id}>
+              <SelectItem key={host.id} value={host.id} className="data-mono text-[11px]">
                 {host.name} · {host.ip}
               </SelectItem>
             ))}
@@ -70,88 +77,98 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
         <Button
           type="button"
           size="sm"
-          variant="destructive"
-          className="gap-1.5"
+          className="gap-1.5 rounded-sm border border-burst/50 bg-burst/[0.12] text-burst hover:bg-burst/20"
           onClick={() => {
             simulateBurst();
             toast.error("Burst injected", {
-              description: `${snapshot.selectedBurstHostId.toUpperCase()} is emitting a reproducible burst — watch the detector fire.`,
+              description: `${snapshot.selectedBurstHostId.toUpperCase()} emits a reproducible burst; the detector declares it once it holds a baseline of undisturbed traffic. Watch the map and source ranking respond.`,
             });
           }}
         >
           <Zap className="size-3.5" />
-          Simulate Burst
+          Simulate burst
         </Button>
-      </div>
+      </Group>
 
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="gap-1.5"
-        onClick={() => {
-          restoreNormal();
-          toast("Traffic restored to normal", {
-            description: "Scheduled burst cancelled and any active cap released.",
-          });
-        }}
-      >
-        <AlertTriangle className="size-3.5" />
-        Restore Normal
-      </Button>
+      <span className="hidden h-6 w-px bg-border xl:block" />
 
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="gap-1.5"
-        onClick={() => {
-          reset();
-          toast("Experiment reset", {
-            description: "History, counters and policy state cleared.",
-          });
-        }}
-      >
-        <RotateCcw className="size-3.5" />
-        Reset Experiment
-      </Button>
+      <Group label="recover">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-1.5 rounded-sm"
+          onClick={() => {
+            restoreNormal();
+            toast("Traffic restored to normal", {
+              description: "Scheduled burst cancelled and any active cap released.",
+            });
+          }}
+        >
+          <AlertTriangle className="size-3.5" />
+          Restore normal
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="gap-1.5 rounded-sm text-muted-foreground"
+          onClick={() => {
+            reset();
+            toast("Session reset", {
+              description: "History, counters and policy state cleared.",
+            });
+          }}
+        >
+          <RotateCcw className="size-3.5" />
+          Reset
+        </Button>
+      </Group>
 
-      <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
-
-      <Button
-        type="button"
-        size="sm"
-        variant={mitigationEnabled ? "secondary" : "outline"}
-        className="gap-1.5"
-        onClick={() => {
-          const next = !mitigationEnabled;
-          setMitigationEnabled(next);
-          toast(next ? "Automatic mitigation enabled" : "Automatic mitigation disabled", {
-            description: next
-              ? "Detected bursts will trigger a rate cap."
-              : "Bursts will be logged but not capped.",
-          });
-        }}
+      <label
+        htmlFor="auto-mitigation-strip"
+        className={cn(
+          "ml-auto flex cursor-pointer items-center gap-2.5 rounded-sm border px-2.5 py-1.5 transition-colors",
+          mitigationEnabled
+            ? "border-success/30 bg-success/[0.05]"
+            : "border-border bg-surface-2",
+        )}
       >
         {mitigationEnabled ? (
-          <>
-            <ShieldOff className="size-3.5" />
-            Disable Mitigation
-          </>
+          <ShieldCheck className="size-3.5 text-success" aria-hidden="true" />
         ) : (
-          <>
-            <ShieldCheck className="size-3.5" />
-            Enable Mitigation
-          </>
+          <ShieldOff className="size-3.5 text-muted-foreground" aria-hidden="true" />
         )}
-      </Button>
+        <span
+          className={cn(
+            "label-caps",
+            mitigationEnabled ? "text-success" : "text-muted-foreground",
+          )}
+        >
+          auto mitigation
+        </span>
+        <Switch
+          id="auto-mitigation-strip"
+          checked={mitigationEnabled}
+          onCheckedChange={(checked) => {
+            setMitigationEnabled(checked);
+            toast(
+              checked
+                ? "Automatic mitigation enabled"
+                : "Automatic mitigation disabled",
+              {
+                description: checked
+                  ? "Detected bursts will trigger a rate cap in the traffic model."
+                  : "Bursts will be recorded but no cap applied.",
+              },
+            );
+          }}
+        />
+      </label>
 
       {!compact && (
-        <span className="ml-auto text-[11px] text-muted-foreground">
-          Data source:{" "}
-          <span className="font-medium text-foreground">
-            {snapshot.dataSource === "simulated" ? "simulation" : "live capture"}
-          </span>
+        <span className="text-[10.5px] text-muted-foreground/70">
+          controls the deterministic model, not a real interface
         </span>
       )}
     </div>

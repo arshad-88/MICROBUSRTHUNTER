@@ -158,7 +158,15 @@ export function MonitoringProvider({ children }: { children: ReactNode }) {
         engine.start();
         startTick();
       }
-      engine.simulateBurst(hostId);
+      // The detector compares the observed rate against a rolling baseline.
+      // Injecting a burst before that baseline holds undisturbed traffic means
+      // the burst raises its own threshold and can never be declared, so the
+      // onset is scheduled once the detector has real history to compare with
+      // (a fifth of the baseline window). Detection rules are unchanged.
+      const { baselineWindowMs, windowMs } = engine.config.detection;
+      const requiredHistoryMs = Math.max(windowMs * 5, baselineWindowMs / 5);
+      const deficitMs = Math.max(0, requiredHistoryMs - engine.getSnapshot().simTime);
+      engine.simulateBurst(hostId, { startDelayMs: windowMs + deficitMs });
       sync();
     },
     [engine, startTick, sync],

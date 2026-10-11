@@ -1,13 +1,79 @@
+import { useMemo } from "react";
 import { EventLogTable } from "@/components/EventLogTable";
 import { Button } from "@/components/ui/button";
+import { Panel, PanelHeader, Stat, Tag, type Tone } from "@/components/kit";
 import { useMonitoring } from "@/state/monitoring";
 import { downloadCsv, timestampSlug, toCsv } from "@/simulation";
 import { EVENT_TYPE_LABELS } from "@/types";
-import { Download, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Download,
+  OctagonAlert,
+  ScrollText,
+  ShieldCheck,
+  TriangleAlert,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function EventLogs() {
   const { snapshot, clearEvents } = useMonitoring();
+
+  const counts = useMemo(() => {
+    const events = snapshot.events;
+    return {
+      detections: events.filter(
+        (e) => e.type === "burst_detected" || e.type === "burst_ended",
+      ).length,
+      policy: events.filter(
+        (e) =>
+          e.type === "mitigation_activated" ||
+          e.type === "mitigation_adjusted" ||
+          e.type === "mitigation_removed",
+      ).length,
+      recovery: events.filter((e) => e.type === "traffic_recovered").length,
+      problems: events.filter(
+        (e) => e.type === "error" || e.type === "policy_failed",
+      ).length,
+    };
+  }, [snapshot.events]);
+
+  const tiles: {
+    label: string;
+    value: string;
+    tone: Tone;
+    icon: typeof ScrollText;
+    hint: string;
+  }[] = [
+    {
+      label: "Records retained",
+      value: String(snapshot.events.length),
+      tone: "neutral",
+      icon: ScrollText,
+      hint: "stored in this browser, newest first",
+    },
+    {
+      label: "Burst events",
+      value: String(counts.detections),
+      tone: counts.detections > 0 ? "burst" : "neutral",
+      icon: OctagonAlert,
+      hint: "detections and end-of-burst records",
+    },
+    {
+      label: "Policy changes",
+      value: String(counts.policy),
+      tone: counts.policy > 0 ? "mitigated" : "neutral",
+      icon: ShieldCheck,
+      hint: "activations, adjustments and removals",
+    },
+    {
+      label: "Recoveries / problems",
+      value: `${counts.recovery} / ${counts.problems}`,
+      tone: counts.problems > 0 ? "burst" : "recovered",
+      icon: TriangleAlert,
+      hint: counts.problems > 0 ? "policy failures or engine errors logged" : "no failures logged",
+    },
+  ];
 
   const handleExport = () => {
     const csv = toCsv(snapshot.events, [
@@ -29,45 +95,63 @@ export default function EventLogs() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold tracking-tight">Event history</p>
-          <p className="text-[11px] text-muted-foreground">
-            {snapshot.events.length} records retained in this browser · exported CSV contains the
-            actual recorded rows
-          </p>
+    <div className="space-y-4">
+      <Panel className="overflow-hidden">
+        <div className="grid grid-cols-2 lg:grid-cols-4">
+          {tiles.map((tile, i) => (
+            <div
+              key={tile.label}
+              className={cn("border-border/60", i % 2 === 1 && "border-l", i >= 2 && "border-t lg:border-t-0", i !== 0 && "lg:border-l")}
+            >
+              <Stat {...tile} size="sm" />
+            </div>
+          ))}
         </div>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={handleExport}
-            disabled={snapshot.events.length === 0}
-          >
-            <Download className="size-3.5" />
-            Export CSV
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="gap-1.5 text-muted-foreground"
-            onClick={() => {
-              clearEvents();
-              toast("Event log cleared");
-            }}
-            disabled={snapshot.events.length === 0}
-          >
-            <Trash2 className="size-3.5" />
-            Clear
-          </Button>
-        </div>
-      </div>
+      </Panel>
 
-      <EventLogTable events={snapshot.events} />
+      <Panel className="overflow-hidden">
+        <PanelHeader
+          title="Event timeline"
+          index="07"
+          icon={ScrollText}
+          note="Audit trail of the monitoring session: lifecycle, detection, attribution, policy and recovery — recorded verbatim."
+          actions={
+            <>
+              <Tag tone="neutral">local storage</Tag>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5 rounded-sm"
+                onClick={handleExport}
+                disabled={snapshot.events.length === 0}
+              >
+                <Download className="size-3.5" />
+                Export CSV
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="gap-1.5 rounded-sm text-muted-foreground"
+                onClick={() => {
+                  clearEvents();
+                  toast("Event log cleared", {
+                    description: "The retained audit trail has been removed from this browser.",
+                  });
+                }}
+                disabled={snapshot.events.length === 0}
+              >
+                <Trash2 className="size-3.5" />
+                Clear
+              </Button>
+            </>
+          }
+        />
+        <div className="px-4 py-3.5">
+          <EventLogTable events={snapshot.events} />
+        </div>
+      </Panel>
     </div>
   );
 }

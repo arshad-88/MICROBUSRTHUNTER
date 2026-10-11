@@ -1,25 +1,16 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { MHMark } from "@/components/Wordmark";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 
 /**
  * Wraps a route that requires a signed-in user.
  *
- * Signed-out visitors used to be bounced straight to `/auth`, which left them
- * on a bare sign-in form with no idea which page they had asked for or why they
- * were moved. The block is now stated on the page they landed on, and sign-in
- * still returns them to it via `returnTo`. Pass `redirectImmediately` for a
- * route where the bounce really is the better experience.
+ * Signed-out visitors see why the page is blocked on the page they landed on,
+ * and sign-in returns them to it through `returnTo`. Pass
+ * `redirectImmediately` for a route where the bounce is the better experience.
  */
 export function RequireAuth({
   children,
@@ -42,7 +33,10 @@ export function RequireAuth({
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center gap-3">
+          <MHMark className="size-9" active={false} />
+          <span className="label-caps text-muted-foreground">resolving session</span>
+        </div>
       </main>
     );
   }
@@ -57,32 +51,34 @@ export function RequireAuth({
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-background p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center">
-              <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted">
-                <Lock className="size-5 text-muted-foreground" />
-              </div>
+        <div className="panel-edge w-full max-w-[420px] rounded-md border border-border bg-surface">
+          <div className="flex items-start gap-3 border-b border-border px-5 py-4">
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-surface-2">
+              <Lock className="size-3.5 text-muted-foreground" />
+            </span>
+            <div>
+              <h1 className="text-[13.5px] font-semibold tracking-tight">{title}</h1>
+              <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{description}</p>
             </div>
-            <CardTitle className="text-xl">{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center text-sm text-muted-foreground">
-            You'll come straight back to this page once you're signed in.
-          </CardContent>
-          <CardFooter className="flex flex-col gap-2">
-            <Button className="w-full" onClick={() => navigate(signInHref)}>
-              Sign in
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => navigate("/")}
-            >
-              Back to home
-            </Button>
-          </CardFooter>
-        </Card>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11.5px] leading-5 text-muted-foreground">
+              You will come straight back to this page once you are signed in.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button className="w-full rounded-sm" onClick={() => navigate(signInHref)}>
+                Sign in
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full rounded-sm text-muted-foreground"
+                onClick={() => navigate("/")}
+              >
+                Back to the overview page
+              </Button>
+            </div>
+          </div>
+        </div>
       </main>
     );
   }

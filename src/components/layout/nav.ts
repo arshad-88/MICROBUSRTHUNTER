@@ -1,69 +1,93 @@
 import {
   Activity,
   FlaskConical,
+  Gauge,
   LayoutDashboard,
   Network,
   ScrollText,
   Settings,
   Share2,
-  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
   to: string;
+  /** Primary navigation label. */
   label: string;
+  /** Short code shown on the collapsed rail and used for the section index. */
+  code: string;
   icon: LucideIcon;
   description: string;
 }
 
+/**
+ * Navigation model. Routes are unchanged from the original console — only the
+ * information architecture (labels, ordering, section numbering) is new.
+ */
 export const NAV_ITEMS: NavItem[] = [
   {
     to: "/dashboard",
     label: "Overview",
+    code: "01",
     icon: LayoutDashboard,
-    description: "Live KPIs, burst status and mitigation state",
+    description: "Fabric state, live traffic and burst intelligence at a glance",
   },
   {
     to: "/dashboard/topology",
-    label: "Network Topology",
+    label: "Network Map",
+    code: "02",
     icon: Network,
-    description: "Interactive fabric with per-node and per-link detail",
+    description: "Interactive fabric: hosts, switch, uplink and per-flow state",
   },
   {
     to: "/dashboard/traffic",
-    label: "Traffic Monitor",
+    label: "Traffic Intelligence",
+    code: "03",
     icon: Activity,
-    description: "Rate, baseline, threshold and burst intervals",
+    description: "Rate, rolling baseline, burst threshold and detected intervals",
   },
   {
     to: "/dashboard/sources",
     label: "Source Analysis",
+    code: "04",
     icon: Share2,
-    description: "Per-source contributions and rankings",
+    description: "Ranked contributors with per-source history and policy",
   },
   {
     to: "/dashboard/mitigation",
     label: "Mitigation",
-    icon: ShieldCheck,
-    description: "Adaptive policy, caps and recovery",
+    code: "05",
+    icon: Gauge,
+    description: "Detection to recovery: cap policy, verification and rollback",
   },
   {
     to: "/dashboard/experiments",
     label: "Experiments",
+    code: "06",
     icon: FlaskConical,
-    description: "Three reproducible scenarios and comparison",
+    description: "Three seeded scenarios with a comparable result set",
   },
   {
     to: "/dashboard/events",
-    label: "Event Logs",
+    label: "Event Timeline",
+    code: "07",
     icon: ScrollText,
-    description: "Audit trail with filters and CSV export",
+    description: "Audit trail of detections, policy changes and recovery",
   },
   {
     to: "/dashboard/settings",
     label: "Settings",
+    code: "08",
     icon: Settings,
-    description: "Detection, mitigation and simulation parameters",
+    description: "Detector, mitigation and simulation parameters",
   },
 ];
+
+export function navItemForPath(pathname: string): NavItem {
+  const exact = NAV_ITEMS.find((item) => item.to === pathname);
+  if (exact) return exact;
+  const nested = NAV_ITEMS.filter(
+    (item) => item.to !== "/dashboard" && pathname.startsWith(item.to),
+  ).sort((a, b) => b.to.length - a.to.length)[0];
+  return nested ?? NAV_ITEMS[0];
+}
