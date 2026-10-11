@@ -30,6 +30,11 @@ import {
   MicroburstDetector,
   type StructuredDetectionEvent,
 } from "./detector";
+import {
+  MitigationEngine,
+  type MitigationDecision,
+} from "./mitigation";
+
 
 
 import {
@@ -223,6 +228,8 @@ export class SimulationEngine {
   private latestTelemetry: WindowTelemetry | null = null;
   private detector: MicroburstDetector;
   private latestDetectorEvent: StructuredDetectionEvent | null = null;
+  private mitigationEngine: MitigationEngine;
+
 
   constructor(options?: {
     config?: AppConfig;
@@ -250,8 +257,16 @@ export class SimulationEngine {
       recoveryWindows: this.config.detection.recoveryWindows,
       cooldownMs: this.config.detection.cooldownMs,
     });
+    this.mitigationEngine = new MitigationEngine({
+      autoEnabled: this.config.mitigation.autoEnabled,
+      initialLimitMbps: this.config.mitigation.rateLimitMbps,
+      severeLimitMbps: this.config.mitigation.severeRateLimitMbps,
+      maxDurationMs: this.config.mitigation.maxDurationMs,
+      cooldownMs: this.config.mitigation.cooldownMs,
+    });
     this.resetCounters();
   }
+
 
 
 
@@ -707,39 +722,45 @@ export class SimulationEngine {
   private updateMitigation(sample: TrafficSample) {
     const { mitigation: cfg, detection } = this.config;
 
+    // Delegate decision to stateful adaptive MitigationEngine
+    const decision = this.mitigationEngine.evaluate(
+      this.latestDetectorEvent,
+      this.latestTelemetry,
+    );
+
     if (this.mitigation.active) {
       this.mitigation.durationMs = this.simTime - (this.mitigation.startedAtSim ?? this.simTime);
       if (this.experimentStats) {
         this.experimentMitigationMs += detection.windowMs;
       }
-      // Recovery check independent of burst bookkeeping (max-duration safety).
-      if (this.mitigation.durationMs >= cfg.maxDurationMs) {
-        this.pushEvent("mitigation_removed", "warning", {
-          action: "Mitigation cap reached maximum duration",
-          outcome: `Cap removed after ${this.mitigation.durationMs} ms (max ${cfg.maxDurationMs} ms).`,
-          rateMbps: sample.rateMbps,
-          sourceIp: this.mitigation.targetIp ?? undefined,
-        });
-        this.removeMitigation("max-duration");
-      }
-      return;
     }
 
-    if (!this.currentBurst || !cfg.autoEnabled) return;
-    if (this.simTime - this.lastMitigationEndSim < cfg.cooldownMs) return;
+    if (decision.action === "apply_cap" && decision.targetHostId && decision.newLimitMbps) {
+      const severity = this.latestDetectorEvent?.severity === "severe" ? "severe" : "moderate";
+      this.applyMitigation(decision.targetHostId, decision.newLimitMbps, severity, sample, decision.reason);
+    } else if (decision.action === "escalate_cap" && decision.targetHostId && decision.newLimitMbps) {
+      const severity = "severe";
+      this.applyMitigation(decision.targetHostId, decision.newLimitMbps, severity, sample, decision.reason);
+    } else if (decision.action === "release_cap") {
+      this.removeMitigation("recovery");
+    } else if (decision.action === "max_duration_release") {
+      this.removeMitigation("max-duration");
+    }
 
-    const severity = this.currentBurst.severity;
-    const limit =
-      severity === "severe" ? cfg.severeRateLimitMbps : cfg.rateLimitMbps;
-    this.applyMitigation(this.currentBurst.hostId, limit, severity, sample);
+    // Update state and reason
+    this.mitigation.state = this.mitigationEngine.getState();
+    this.mitigation.actionReason = this.mitigationEngine.getLastReason();
   }
+
 
   private applyMitigation(
     hostId: string,
     limitMbps: number,
     severity: "moderate" | "severe",
     sample: TrafficSample,
+    customReason?: string,
   ) {
+
     if (!Number.isFinite(limitMbps) || limitMbps <= 0) {
       this.mitigation = {
         ...this.mitigation,
@@ -794,13 +815,22 @@ export class SimulationEngine {
     if (target) delete this.caps[target];
     const duration = this.simTime - (this.mitigation.startedAtSim ?? this.simTime);
     this.lastMitigationEndSim = this.simTime;
+    this.mitigationEngine.release(
+      reason === "recovery"
+        ? "Traffic recovered below threshold"
+        : reason === "max-duration"
+          ? "Safety maximum duration reached"
+          : "Manual override",
+    );
     this.mitigation = {
       ...this.mitigation,
       active: false,
       durationMs: duration,
       state: "idle",
+      actionReason: this.mitigationEngine.getLastReason(),
       recovery: reason === "recovery" ? "recovered" : this.mitigation.recovery,
     };
+
     if (reason === "recovery") {
       this.pushEvent("traffic_recovered", "success", {
         action: "Traffic recovered",

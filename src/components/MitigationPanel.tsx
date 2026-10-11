@@ -209,17 +209,31 @@ export function MitigationPanel() {
           note="Operates on the simulation model. The offending source is clamped before rates and queue effects are computed."
           actions={
             <StatusPill
-              tone={mitigation.active ? "mitigated" : mitigation.state === "failed" ? "burst" : "normal"}
-              pulse={mitigation.active}
+              tone={
+                mitigation.state === "applied"
+                  ? "mitigated"
+                  : mitigation.state === "recovering"
+                    ? "normal"
+                    : mitigation.state === "failed"
+                      ? "burst"
+                      : "idle"
+              }
+              pulse={mitigation.state === "applied" || mitigation.state === "recovering"}
             >
-              {mitigation.state === "failed"
-                ? "policy failed"
-                : mitigation.active
-                  ? "cap enforced"
-                  : "idle"}
+              {mitigation.state === "applied"
+                ? "cap enforced"
+                : mitigation.state === "recovering"
+                  ? "recovering"
+                  : mitigation.state === "disabled"
+                    ? "disabled"
+                    : mitigation.state === "failed"
+                      ? "policy failed"
+                      : "idle"}
             </StatusPill>
           }
+
         />
+
 
         <div className="space-y-3 px-4 py-3.5">
           <label
@@ -276,7 +290,14 @@ export function MitigationPanel() {
                 {mitigation.recovery}
               </StatusPill>
             </KeyValue>
+            {mitigation.actionReason && (
+              <div className="py-2 text-[11px] leading-4 text-muted-foreground">
+                <span className="font-semibold text-foreground">Action reason: </span>
+                {mitigation.actionReason}
+              </div>
+            )}
           </div>
+
 
           <div>
             <div className="flex items-center justify-between">

@@ -85,6 +85,7 @@ export interface MitigationComparison {
 }
 
 export type MitigationStateName =
+  | "disabled"
   | "idle"
   | "applied"
   | "recovering"
@@ -105,11 +106,17 @@ export interface MitigationState {
   durationMs: number;
   state: MitigationStateName;
   recovery: "pending" | "recovered" | "n/a";
+  /** Human-readable explanation of why the last mitigation action was taken. */
+  actionReason?: string | null;
   before: MitigationComparison;
   after: MitigationComparison;
+  /** Non-target flows throughput before/after to observe collateral effects */
+  nonTargetThroughputBeforeMbps?: number;
+  nonTargetThroughputAfterMbps?: number;
   /** Reason for the last policy failure, if any. */
   failureReason: string | null;
 }
+
 
 export type ExperimentScenarioId = 1 | 2 | 3;
 
