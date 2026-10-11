@@ -58,8 +58,6 @@ def capture(
         completed = aggregator.add(ts_ms, length, str(ip_layer.src))
         if completed is not None:
             on_window(completed)
-        if duration_s is not None and (time.monotonic() - started) >= duration_s:
-            raise KeyboardInterrupt
 
     LOG.info("Capturing on %s (filter=%r)…", interface, bpf_filter)
     try:
@@ -69,6 +67,7 @@ def capture(
             prn=handle,
             store=False,
             count=packet_limit or 0,
+            timeout=duration_s,
         )
     except KeyboardInterrupt:
         LOG.info("Capture stopped by operator")

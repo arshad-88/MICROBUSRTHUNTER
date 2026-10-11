@@ -2,3 +2,13 @@
 node_modules
 dist
 src/convex/_generated
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.sqlite3
+backend/__pycache__/
+backend/.venv/
+backend/*.sqlite3

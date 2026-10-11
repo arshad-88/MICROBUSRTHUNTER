@@ -72,10 +72,9 @@ class BurstDetector:
         rate = window.rate_mbps
         qualifying = rate > threshold
 
-        self._baseline.append((now, rate))
-
         if self.active is None:
             if qualifying and baseline is not None:
+                # Do not let candidate burst samples inflate their own baseline.
                 self._consecutive += 1
                 if (
                     self._consecutive >= self.cfg.persistence_windows
@@ -84,9 +83,11 @@ class BurstDetector:
                     self._start(window, used_baseline, threshold)
             else:
                 self._consecutive = 0
+                # Learn only from non-qualifying traffic while idle.
+                self._baseline.append((now, rate))
             return
 
-        # inside a burst
+        # inside a burst: keep the pre-burst baseline frozen.
         self.active.peak_mbps = max(self.active.peak_mbps, rate)
         if not qualifying:
             self._quiet += 1

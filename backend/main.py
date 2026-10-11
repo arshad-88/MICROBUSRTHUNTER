@@ -60,7 +60,6 @@ def cmd_capture(args: argparse.Namespace, cfg: RuntimeConfig) -> int:
     store = EventStore(cfg.db_path)
     ranker = SourceRanker()
     policy = MitigationPolicy(cfg.mitigation)
-    detector = BurstDetector(cfg.detection)
 
     def on_window(window) -> None:  # type: ignore[no-untyped-def]
         for ip, byte_count in window.per_source_bytes.items():
@@ -94,6 +93,12 @@ def cmd_capture(args: argparse.Namespace, cfg: RuntimeConfig) -> int:
         if kind == "burst_detected":
             decision = policy.on_burst(event)
             _emit("policy", {"action": decision.action, "cap_mbps": decision.cap_mbps, "reason": decision.reason})
+        elif kind == "burst_ended":
+            decision = policy.on_recovery()
+            _emit("policy", {"action": decision.action, "cap_mbps": decision.cap_mbps, "reason": decision.reason})
+
+    # Wire detector events only after the callback has been defined.
+    detector = BurstDetector(cfg.detection, on_event=on_event)
 
     logging.getLogger("microbursthunter.detector").info("Starting passive capture on %s", args.interface)
     try:
@@ -137,8 +142,10 @@ def cmd_tc_plan(args: argparse.Namespace, cfg: RuntimeConfig) -> int:
     for line in commands:
         print(f"tc {line}")
     print(
-        "\n# This uses an htb + flower classifier => a genuine PER-SOURCE cap on "
-        f"{args.source_ip}. Roll it back with `tc qdisc del dev {args.interface} root`."
+        "\n# This plan would create a root HTB qdisc and a flower source classifier."
+        "\n# WARNING: applying it may replace existing root queueing configuration."
+        "\n# Automated rollback is intentionally unavailable until rule ownership "
+        "can be verified."
     )
     return 0
 
