@@ -48,7 +48,11 @@ export function BurstAlert() {
           {burst.detectionDelayMs !== null && (
             <Cell label="latency" value={formatMs(burst.detectionDelayMs, 0)} />
           )}
+          {snapshot.latestDetectorEvent && (
+            <Cell label="queue est" value={`${snapshot.latestDetectorEvent.estimatedQueuePct.toFixed(0)}%`} />
+          )}
         </div>
+
         <span className="ml-auto">
           {mitigation.active ? (
             <span className="flex items-center gap-2 rounded-sm border border-warning/40 bg-warning/[0.08] px-2 py-[3px]">

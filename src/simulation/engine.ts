@@ -26,6 +26,11 @@ import {
   type ScenarioRunOptions,
   type WindowTelemetry,
 } from "./scenarios";
+import {
+  MicroburstDetector,
+  type StructuredDetectionEvent,
+} from "./detector";
+
 
 import {
   applyRateCap,
@@ -129,7 +134,10 @@ export interface MonitoringSnapshot {
   selectedBurstHostId: string;
   activeScenario: TrafficScenarioType;
   latestTelemetry: WindowTelemetry | null;
+  structuredDetections: import("./detector").StructuredDetectionEvent[];
+  latestDetectorEvent: import("./detector").StructuredDetectionEvent | null;
 }
+
 
 
 export interface ExperimentRuntimeSnapshot {
@@ -213,6 +221,8 @@ export class SimulationEngine {
   private activeScenario: TrafficScenarioType = "normal";
   private activeScenarioParams: ScenarioRunOptions | null = null;
   private latestTelemetry: WindowTelemetry | null = null;
+  private detector: MicroburstDetector;
+  private latestDetectorEvent: StructuredDetectionEvent | null = null;
 
   constructor(options?: {
     config?: AppConfig;
@@ -232,8 +242,18 @@ export class SimulationEngine {
       durationMs: this.config.simulation.experimentDurationMs,
       progress: 0,
     };
+    this.detector = new MicroburstDetector({
+      windowMs: this.config.detection.windowMs,
+      minRateMbps: this.config.detection.minRateMbps,
+      baselineMultiplier: this.config.detection.baselineMultiplier,
+      persistenceWindows: this.config.detection.persistenceWindows,
+      recoveryWindows: this.config.detection.recoveryWindows,
+      cooldownMs: this.config.detection.cooldownMs,
+    });
     this.resetCounters();
   }
+
+
 
   private freshMitigation(): MitigationState {
     return {
@@ -318,12 +338,23 @@ export class SimulationEngine {
       durationMs: this.config.simulation.experimentDurationMs,
       progress: 0,
     };
+    this.detector.reset();
+    this.latestDetectorEvent = null;
     this.resetCounters();
   }
 
   setConfig(config: AppConfig): void {
     const seedChanged = config.simulation.seed !== this.config.simulation.seed;
     this.config = cloneConfig(config);
+    this.detector.updateConfig({
+      windowMs: config.detection.windowMs,
+      minRateMbps: config.detection.minRateMbps,
+      baselineMultiplier: config.detection.baselineMultiplier,
+      persistenceWindows: config.detection.persistenceWindows,
+      recoveryWindows: config.detection.recoveryWindows,
+      cooldownMs: config.detection.cooldownMs,
+    });
+
     this.mitigation.autoEnabled = config.mitigation.autoEnabled;
     if (seedChanged) {
       this.rng = mulberry32(config.simulation.seed);
@@ -473,7 +504,14 @@ export class SimulationEngine {
       dataSource: this.dataSource,
     };
 
+    // Feed telemetry to Phase 3 independent detector engine
+    const detectorEvent = this.detector.processWindow(this.latestTelemetry);
+    if (detectorEvent) {
+      this.latestDetectorEvent = detectorEvent;
+    }
+
     // 4. Accumulate session / experiment statistics.
+
     this.accumulate(this.session, sample);
     if (this.experimentStats) this.accumulate(this.experimentStats, sample);
 
@@ -1181,8 +1219,11 @@ export class SimulationEngine {
       selectedBurstHostId: this.config.simulation.burstHostId,
       activeScenario: this.activeScenario,
       latestTelemetry: this.latestTelemetry ? { ...this.latestTelemetry } : null,
+      structuredDetections: this.detector.getDetections(),
+      latestDetectorEvent: this.latestDetectorEvent ? { ...this.latestDetectorEvent } : null,
     };
   }
+
 
 
   getEvents(): AppEvent[] {
