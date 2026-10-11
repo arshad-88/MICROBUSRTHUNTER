@@ -354,6 +354,8 @@ export class SimulationEngine {
       progress: 0,
     };
     this.detector.reset();
+    this.mitigationEngine.reset();
+    this.mitigationEngine.setAutoEnabled(this.config.mitigation.autoEnabled);
     this.latestDetectorEvent = null;
     this.resetCounters();
   }
@@ -371,6 +373,13 @@ export class SimulationEngine {
     });
 
     this.mitigation.autoEnabled = config.mitigation.autoEnabled;
+    this.mitigationEngine.setAutoEnabled(config.mitigation.autoEnabled);
+    this.mitigationEngine.setConfig({
+      initialLimitMbps: config.mitigation.rateLimitMbps,
+      severeLimitMbps: config.mitigation.severeRateLimitMbps,
+      maxDurationMs: config.mitigation.maxDurationMs,
+      cooldownMs: config.mitigation.cooldownMs,
+    });
     if (seedChanged) {
       this.rng = mulberry32(config.simulation.seed);
     }
@@ -1020,6 +1029,7 @@ export class SimulationEngine {
     const duration = this.config.simulation.experimentDurationMs;
     this.config.mitigation.autoEnabled = scenario.usesMitigation;
     this.mitigation.autoEnabled = scenario.usesMitigation;
+    this.mitigationEngine.setAutoEnabled(scenario.usesMitigation);
 
     if (scenario.usesBurst) {
       const startAt = Math.round(duration * 0.15);
