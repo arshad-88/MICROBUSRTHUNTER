@@ -75,14 +75,14 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       : "sim://fabric";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/92 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080910]/95 backdrop-blur-xl">
       {/* Row 1 — identity, primary controls */}
-      <div className="flex h-[57px] items-center gap-3 px-4 lg:px-6">
+      <div className="flex h-[58px] items-center gap-3 px-4 lg:px-6">
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="size-8 rounded-sm lg:hidden"
+          className="size-8 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 text-white lg:hidden"
           onClick={onOpenMenu}
           aria-label="Open navigation"
         >
@@ -90,14 +90,14 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         </Button>
 
         <div className="flex min-w-0 items-baseline gap-2.5">
-          <h1 className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+          <h1 className="truncate text-[15px] font-semibold tracking-tight text-white">
             {page.label}
           </h1>
           <span
             key={burst?.id ?? "idle"}
             className={cn(
-              "hidden truncate text-[12px] text-muted-foreground lg:inline",
-              burst && "mbh-flash rounded-sm px-1.5",
+              "hidden truncate text-[12px] text-slate-400 lg:inline",
+              burst && "mbh-flash rounded-md px-1.5 bg-rose-500/20 text-rose-300 border border-rose-500/30",
             )}
           >
             {burst
@@ -106,50 +106,56 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-2 rounded border border-border bg-surface px-2.5 py-1 text-xs md:flex">
+        <div className="ml-auto flex items-center gap-2.5">
+          <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-xs md:flex shadow-inner">
             <span
               className={cn(
                 "size-2 rounded-full",
-                snapshot.running ? "bg-success mbh-pulse" : "bg-muted-foreground/60",
+                snapshot.running
+                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(0,210,148,0.8)] animate-pulse"
+                  : "bg-slate-500",
               )}
             />
             <span
               className={cn(
                 "font-medium",
-                snapshot.running ? "text-success" : "text-muted-foreground",
+                snapshot.running ? "text-emerald-400" : "text-slate-400",
               )}
             >
               {snapshot.running ? "Active" : "Halted"}
             </span>
           </span>
 
-          <Button
+          <button
             type="button"
-            size="sm"
-            className="gap-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 font-medium px-3 shadow-xs"
+            className={cn(
+              "gradient-button text-white text-xs font-semibold px-4 py-2 gap-1.5 shadow-[0_0_20px_-3px_rgba(141,84,255,0.4)] transition-all",
+              snapshot.running && "opacity-60 cursor-not-allowed",
+            )}
             onClick={handleStart}
             disabled={snapshot.running}
           >
             <Play className="size-3.5 fill-current" />
             <span className="hidden sm:inline">Start capture</span>
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            size="sm"
-            variant="outline"
-            className="gap-1.5 rounded border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 px-3"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white",
+              snapshot.running && "hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300",
+              !snapshot.running && "opacity-50 cursor-not-allowed",
+            )}
             onClick={handleStop}
             disabled={!snapshot.running}
           >
             <Square className="size-3.5" />
             <span className="hidden sm:inline">Stop</span>
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Row 2 — telemetry strip */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border px-4 py-2 text-xs lg:px-6">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-white/5 bg-black/30 px-4 py-2 text-xs lg:px-6">
         <Telemetry label="State" tone={snapshot.running ? "live" : "muted"}>
           {snapshot.running ? (snapshot.dataSource === "live" ? "Sniffing" : "Sampling") : "Halted"}
         </Telemetry>
@@ -172,30 +178,25 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <span
           key={`alert-${burst?.id ?? (snapshot.mitigation.active ? "mit" : "none")}`}
           className={cn(
-            "ml-auto flex items-center gap-2 whitespace-nowrap",
-            (burst || snapshot.mitigation.active) && "mbh-flash rounded-sm px-1.5",
+            "ml-auto flex items-center gap-2 whitespace-nowrap rounded-full px-2.5 py-0.5 border text-xs font-medium transition-colors",
+            alertTone === "burst"
+              ? "border-rose-500/40 bg-rose-500/10 text-rose-300 shadow-[0_0_12px_rgba(255,35,87,0.3)] mbh-flash"
+              : alertTone === "mitigated"
+                ? "border-amber-400/40 bg-amber-400/10 text-amber-300 shadow-[0_0_12px_rgba(252,187,0,0.25)] mbh-flash"
+                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_rgba(0,210,148,0.2)]",
           )}
         >
           <span
             className={cn(
               "size-2 rounded-full",
               alertTone === "burst"
-                ? "bg-burst mbh-pulse"
+                ? "bg-rose-400 shadow-[0_0_6px_rgba(255,35,87,0.8)] animate-pulse"
                 : alertTone === "mitigated"
-                  ? "bg-warning mbh-pulse"
-                  : "bg-success",
+                  ? "bg-amber-400 shadow-[0_0_6px_rgba(252,187,0,0.8)] animate-pulse"
+                  : "bg-emerald-400 shadow-[0_0_6px_rgba(0,210,148,0.8)]",
             )}
           />
-          <span
-            className={cn(
-              "text-xs font-medium",
-              alertTone === "burst"
-                ? "text-burst"
-                : alertTone === "mitigated"
-                  ? "text-warning"
-                  : "text-success",
-            )}
-          >
+          <span>
             {burst
               ? `Burst active · ${burst.peakMbps.toFixed(1)} Mbps`
               : snapshot.mitigation.active

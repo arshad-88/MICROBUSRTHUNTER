@@ -37,26 +37,28 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        "panel-edge group relative rounded-md border border-border bg-surface px-3.5 py-3",
+        "group relative rounded-2xl border border-white/10 bg-[#0c0d15] p-4 transition-all duration-300 hover:border-violet-500/35 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.6),0_0_20px_-4px_rgba(141,84,255,0.2)]",
         className,
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-muted-foreground truncate">{label}</span>
+        <span className="text-[11px] font-medium text-slate-400 truncate tracking-wide">{label}</span>
         {Icon && (
-          <Icon className={cn("size-3.5 shrink-0", toneText[t])} aria-hidden="true" />
+          <span className="flex size-6 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+            <Icon className={cn("size-3.5 shrink-0", toneText[t])} aria-hidden="true" />
+          </span>
         )}
       </div>
-      <div className="mt-2.5 flex items-baseline gap-1.5">
-        <span className={cn("readout text-[21px] font-semibold", toneText[t])}>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span className={cn("readout text-[22px] font-bold tracking-tight text-white", toneText[t])}>
           {value}
         </span>
         {unit && (
-          <span className="data-mono text-[10.5px] text-muted-foreground">{unit}</span>
+          <span className="data-mono text-[11px] text-slate-400 font-medium">{unit}</span>
         )}
       </div>
       {hint && (
-        <div className="mt-2 line-clamp-2 border-t border-border/70 pt-2 text-[10.5px] leading-4 text-muted-foreground">
+        <div className="mt-2.5 line-clamp-2 border-t border-white/5 pt-2 text-[11px] leading-4 text-slate-400">
           {hint}
         </div>
       )}

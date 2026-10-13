@@ -89,7 +89,7 @@ export function Panel({
   return (
     <Tag
       className={cn(
-        "panel-edge relative rounded-md border border-border bg-surface",
+        "panel-edge panel-interactive relative rounded-2xl border border-white/10 bg-[#0c0d15]/90 backdrop-blur-md shadow-md",
         className,
       )}
     >
@@ -121,26 +121,26 @@ export function PanelHeader({
   return (
     <header
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3",
+        "flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5",
         className,
       )}
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span className="mt-0.5 h-7 w-[3px] shrink-0 rounded-full bg-primary/70" />
+        <span className="mt-0.5 h-6 w-[3px] shrink-0 rounded-full bg-violet-400 shadow-[0_0_8px_#a685ff]" />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             {index && (
-              <span className="data-mono text-[10px] text-primary/80">
+              <span className="data-mono text-[10px] text-violet-400 font-semibold">
                 {index}
               </span>
             )}
-            <h2 className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+            <h2 className="truncate text-[13px] font-semibold tracking-tight text-white">
               {title}
             </h2>
-            {Icon && <Icon className="size-3.5 shrink-0 text-muted-foreground" />}
+            {Icon && <Icon className="size-3.5 shrink-0 text-slate-400" />}
           </div>
           {note && (
-            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+            <p className="mt-1 text-[11px] leading-4 text-slate-400">
               {note}
             </p>
           )}

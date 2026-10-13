@@ -91,14 +91,14 @@ export function NetworkTopology({
   const burstNode = hosts.find((h) => h.state === "burst") ?? null;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-cyan-500/20 bg-[#060A17] shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#07070a] shadow-[0_10px_30px_rgba(0,0,0,0.7)]">
       {/* Background Datacenter Room Translucent Overlay */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-15 mix-blend-screen"
+        className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-10 mix-blend-screen"
         style={{ backgroundImage: "url('/server-room-bg.jpg')" }}
       />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-t from-[#060A17] via-[#060A17]/85 to-[#060A17]/90" />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/15 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-t from-[#07070a] via-[#090b14]/90 to-[#07070a]" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-950/20 via-transparent to-transparent" />
 
       {/* SVG Fabric Plane */}
       <div className="relative z-10 w-full">
@@ -111,8 +111,8 @@ export function NetworkTopology({
           <defs>
             {/* Holographic Cyber Grid */}
             <pattern id="cyber-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0, 229, 255, 0.05)" strokeWidth="0.8" />
-              <circle cx="0" cy="0" r="1" fill="rgba(0, 229, 255, 0.2)" />
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(141, 84, 255, 0.05)" strokeWidth="0.8" />
+              <circle cx="0" cy="0" r="1" fill="rgba(141, 84, 255, 0.2)" />
             </pattern>
 
             {/* Neon Glow Filters */}
@@ -142,42 +142,42 @@ export function NetworkTopology({
 
             {/* Switch Energy Radial Glow */}
             <radialGradient id="switch-energy-radial" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#00e5ff" stopOpacity="0.32" />
-              <stop offset="65%" stopColor="#0284c7" stopOpacity="0.10" />
-              <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
+              <stop offset="0%" stopColor="#8d54ff" stopOpacity="0.35" />
+              <stop offset="65%" stopColor="#4f39f6" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#2f0d68" stopOpacity="0" />
             </radialGradient>
 
             <radialGradient id="switch-burst-radial" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.45" />
-              <stop offset="70%" stopColor="#e11d48" stopOpacity="0.15" />
+              <stop offset="0%" stopColor="#ff2357" stopOpacity="0.5" />
+              <stop offset="70%" stopColor="#fb2c36" stopOpacity="0.18" />
               <stop offset="100%" stopColor="#be123c" stopOpacity="0" />
             </radialGradient>
 
             {/* Chassis Gradients */}
             <linearGradient id="blade-chassis" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#0b1329" stopOpacity="0.95" />
-              <stop offset="100%" stopColor="#050a18" stopOpacity="0.98" />
+              <stop offset="0%" stopColor="#0d0e17" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="#06070b" stopOpacity="0.98" />
             </linearGradient>
 
             <linearGradient id="meter-cyan" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#0284c7" />
-              <stop offset="100%" stopColor="#00e5ff" />
+              <stop offset="0%" stopColor="#625fff" />
+              <stop offset="100%" stopColor="#a685ff" />
             </linearGradient>
 
             <linearGradient id="meter-burst" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#f43f5e" />
-              <stop offset="100%" stopColor="#fb7185" />
+              <stop offset="0%" stopColor="#e11d48" />
+              <stop offset="100%" stopColor="#ff2357" />
             </linearGradient>
 
             <linearGradient id="meter-amber" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#d97706" />
-              <stop offset="100%" stopColor="#fbbf24" />
+              <stop offset="100%" stopColor="#fcbb00" />
             </linearGradient>
 
             <linearGradient id="uplink-flow" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#00e5ff" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#818cf8" stopOpacity="0.8" />
+              <stop offset="0%" stopColor="#8d54ff" stopOpacity="0.85" />
+              <stop offset="50%" stopColor="#a685ff" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="#c4b4ff" stopOpacity="0.85" />
             </linearGradient>
           </defs>
 
@@ -200,6 +200,10 @@ export function NetworkTopology({
           {/* ----------------------------------------------------------------
               1. FIBER CONDUITS & GLOWING DATA FLOWS
           ----------------------------------------------------------------- */}
+          {/* ----------------------------------------------------------------
+              1. FIBER CONDUITS & DYNAMIC REAL PACKET STREAM
+              Packets sent in direct ratio of throughput (higher rate/burst = more packets)
+          ----------------------------------------------------------------- */}
           {sources.map((host, i) => {
             const link = links.find((l) => l.from === host.id);
             if (!link) return null;
@@ -208,71 +212,96 @@ export function NetworkTopology({
             const d = fanPath(PORT_X + PORT_W / 2, y1, ingressX, y2);
             const isBurst = host.state === "burst";
             const isMitigated = host.state === "mitigated";
-            const flowing = host.rateMbps > 0.5 && running;
+            const rate = host.rateMbps;
+            const flowing = running && rate > 0.2;
             const selected = selectedLinkId === link.id;
 
-            // Colors based on state
-            const strokeColor = isBurst
-              ? "#f43f5e"
-              : isMitigated
-                ? "#f59e0b"
-                : flowing
-                  ? "#00e5ff"
-                  : "#1e293b";
-            const filterUrl = isBurst
-              ? "url(#glow-burst)"
-              : isMitigated
-                ? "url(#glow-amber)"
-                : flowing
-                  ? "url(#glow-cyan)"
-                  : undefined;
+            // Colors & Filters based on traffic state
+            const packetColor = isBurst ? "#ff2357" : isMitigated ? "#fcbb00" : "#00e5ff";
+            const filterUrl = isBurst ? "url(#glow-burst)" : isMitigated ? "url(#glow-amber)" : "url(#glow-cyan)";
+
+            // Dynamic packet count and velocity in direct proportion to captured / simulated data rate:
+            let packetCount = 0;
+            let animDur = 1.6;
+            if (flowing) {
+              if (isBurst) {
+                // Microburst overload: high-frequency dense torrent of packets
+                packetCount = Math.min(22, Math.max(14, Math.round(rate / 3.8)));
+                animDur = 0.72; // Ultra-fast surge
+              } else if (isMitigated) {
+                // Throttled under TC rate-limit: sparse paced packet stream
+                packetCount = Math.max(3, Math.min(6, Math.round(rate / 8)));
+                animDur = 2.1; // Paced velocity
+              } else {
+                // Nominal traffic: proportional scaling from 3 to 14 packets based on rate
+                packetCount = Math.max(3, Math.min(14, Math.round(rate / 5)));
+                animDur = Math.max(1.0, 2.0 - (rate / 90));
+              }
+            }
 
             return (
               <g key={`flow-${host.id}`} opacity={linkEmphasis(link)}>
-                {/* Hairline Conduit Track */}
+                {/* Subtle Fiber Waveguide Track (replacing heavy static solid line) */}
                 <path
                   d={d}
                   fill="none"
-                  stroke="#162036"
-                  strokeWidth={selected ? 3 : 1.5}
+                  stroke={selected ? "#00e5ff" : "#131a2e"}
+                  strokeWidth={selected ? 2 : 1}
+                  strokeDasharray={selected ? undefined : "3 4"}
+                  opacity={selected ? 0.9 : 0.45}
                   className="transition-colors"
                 />
 
-                {/* Glowing Laser Core */}
-                {(flowing || selected || isBurst) && (
+                {/* Faint ambient energy aura when active or selected */}
+                {(flowing || selected) && (
                   <path
                     d={d}
                     fill="none"
-                    stroke={strokeColor}
-                    strokeWidth={isBurst ? 4.5 : selected ? 3.5 : 2.2}
-                    strokeLinecap="round"
+                    stroke={packetColor}
+                    strokeWidth={selected ? 2 : 1}
+                    opacity={isBurst ? 0.35 : selected ? 0.4 : 0.15}
                     filter={filterUrl}
-                    opacity={flowing ? 0.95 : 0.4}
                   />
                 )}
 
-                {/* Animated Flying Light Photons */}
-                {flowing && (
-                  <>
-                    <circle r={isBurst ? 4.5 : 3} fill={isBurst ? "#fff" : strokeColor} filter={filterUrl}>
-                      <animateMotion
-                        dur={isBurst ? "0.85s" : "1.8s"}
-                        repeatCount="indefinite"
-                        path={d}
-                      />
-                    </circle>
-                    {isBurst && (
-                      <circle r={3.5} fill="#f43f5e" filter="url(#glow-burst)">
+                {/* Real Dynamic Data Packets Stream — Sent in ratio of captured data */}
+                {flowing &&
+                  Array.from({ length: packetCount }, (_, pIdx) => {
+                    const delay = (pIdx * animDur) / packetCount;
+                    return (
+                      <g key={`pkt-${host.id}-${packetCount}-${pIdx}`}>
                         <animateMotion
-                          dur="0.85s"
-                          begin="0.42s"
+                          dur={`${animDur.toFixed(2)}s`}
+                          begin={`${delay.toFixed(2)}s`}
                           repeatCount="indefinite"
+                          rotate="auto"
                           path={d}
                         />
-                      </circle>
-                    )}
-                  </>
-                )}
+                        {/* Streamlined Packet Capsule */}
+                        <rect
+                          x={isBurst ? -7 : -5}
+                          y={isBurst ? -3 : -2.2}
+                          width={isBurst ? 14 : 10}
+                          height={isBurst ? 6 : 4.4}
+                          rx={2.2}
+                          fill={packetColor}
+                          filter={filterUrl}
+                        />
+                        {/* High-Intensity Packet Payload Core */}
+                        <rect
+                          x={isBurst ? -3.5 : -2}
+                          y={isBurst ? -1.5 : -1}
+                          width={isBurst ? 7 : 4}
+                          height={isBurst ? 3 : 2}
+                          rx={1}
+                          fill="#ffffff"
+                          opacity={0.95}
+                        />
+                        {/* Trailing Tail Particle */}
+                        <circle cx={-7} cy={0} r={1.2} fill={packetColor} opacity={0.6} />
+                      </g>
+                    );
+                  })}
 
                 {/* Clickable Hit Target */}
                 <path
@@ -318,81 +347,121 @@ export function NetworkTopology({
 
           {/* ----------------------------------------------------------------
               2. UPLINK TRUNK (S1 → R1 DESTINATION)
+              Dynamic Multi-Packet Highway proportional to total aggregated rate
           ----------------------------------------------------------------- */}
-          {uplink && (
-            <g opacity={linkEmphasis(uplink)}>
-              {/* Outer conduit pipe */}
-              <path
-                d={`M ${SW.x + (SW.r * Math.sqrt(3)) / 2} ${SW.y} L ${RX.x - RX.w / 2} ${RX.y}`}
-                fill="none"
-                stroke="#162036"
-                strokeWidth={14}
-              />
-              {/* Active illuminated trunk core */}
-              <path
-                d={`M ${SW.x + (SW.r * Math.sqrt(3)) / 2} ${SW.y} L ${RX.x - RX.w / 2} ${RX.y}`}
-                fill="none"
-                stroke="url(#uplink-flow)"
-                strokeWidth={uplinkStroke}
-                strokeLinecap="round"
-                filter="url(#glow-cyan)"
-                opacity={uplinkActive ? 0.95 : 0.3}
-              />
+          {uplink && (() => {
+            const trunkD = `M ${SW.x + (SW.r * Math.sqrt(3)) / 2} ${SW.y} L ${RX.x - RX.w / 2} ${RX.y}`;
+            const uplinkRate = uplink.rateMbps;
+            const trunkFlowing = running && uplinkRate > 0.5;
+            const isTrunkBurst = burstActive || uplinkRate > 120;
 
-              {/* Animated high-throughput trunk particles */}
-              {uplinkActive && (
-                <>
-                  <circle r={4} fill="#ffffff" filter="url(#glow-cyan)">
-                    <animateMotion
-                      dur="1.2s"
-                      repeatCount="indefinite"
-                      path={`M ${SW.x + (SW.r * Math.sqrt(3)) / 2} ${SW.y} L ${RX.x - RX.w / 2} ${RX.y}`}
-                    />
-                  </circle>
-                  <circle r={3} fill="#00e5ff" filter="url(#glow-cyan)">
-                    <animateMotion
-                      dur="1.2s"
-                      begin="0.6s"
-                      repeatCount="indefinite"
-                      path={`M ${SW.x + (SW.r * Math.sqrt(3)) / 2} ${SW.y} L ${RX.x - RX.w / 2} ${RX.y}`}
-                    />
-                  </circle>
-                </>
-              )}
+            // Proportional packet density for trunk backbone:
+            let trunkPacketCount = 0;
+            let trunkDur = 1.3;
+            if (trunkFlowing) {
+              if (isTrunkBurst) {
+                trunkPacketCount = 24;
+                trunkDur = 0.65;
+              } else {
+                trunkPacketCount = Math.max(6, Math.min(18, Math.round(uplinkRate / 8)));
+                trunkDur = Math.max(0.85, 1.8 - (uplinkRate / 180));
+              }
+            }
 
-              {/* Click target */}
-              <path
-                d={`M ${SW.x + (SW.r * Math.sqrt(3)) / 2} ${SW.y} L ${RX.x - RX.w / 2} ${RX.y}`}
-                fill="none"
-                strokeWidth={22}
-                className="cursor-pointer stroke-transparent"
-                role="button"
-                tabIndex={0}
-                onClick={() => onSelectLink(uplink.id)}
-              />
-
-              {/* Trunk Capacity Readout Pill */}
-              <g transform={`translate(${(SW.x + RX.x) / 2 - 58}, ${SW.y - 20})`}>
-                <rect
-                  width={116}
-                  height={22}
-                  rx={4}
-                  fill="#060e20"
-                  stroke="#1e293b"
-                  strokeWidth={1}
+            return (
+              <g opacity={linkEmphasis(uplink)}>
+                {/* Subtle Trunk Conduit Conduit Track */}
+                <path
+                  d={trunkD}
+                  fill="none"
+                  stroke="#121a30"
+                  strokeWidth={6}
+                  strokeDasharray="4 6"
+                  opacity={0.4}
                 />
-                <text
-                  x={58}
-                  y={15}
-                  textAnchor="middle"
-                  fill="#38bdf8"
-                  className="font-mono text-[10px] font-medium"
-                >
-                  {formatMbpsValue(uplink.rateMbps)} Mbps ({formatPercent(uplink.utilization * 100, 0)})
-                </text>
+                {/* Active illuminated trunk core track */}
+                <path
+                  d={trunkD}
+                  fill="none"
+                  stroke={isTrunkBurst ? "#ff2357" : "url(#uplink-flow)"}
+                  strokeWidth={uplinkStroke}
+                  strokeLinecap="round"
+                  filter={isTrunkBurst ? "url(#glow-burst)" : "url(#glow-cyan)"}
+                  opacity={trunkFlowing ? (isTrunkBurst ? 0.65 : 0.4) : 0.15}
+                />
+
+                {/* Animated Dynamic Trunk Packets Stream */}
+                {trunkFlowing &&
+                  Array.from({ length: trunkPacketCount }, (_, pIdx) => {
+                    const delay = (pIdx * trunkDur) / trunkPacketCount;
+                    const pColor = isTrunkBurst ? "#ff2357" : "#00e5ff";
+                    const pFilter = isTrunkBurst ? "url(#glow-burst)" : "url(#glow-cyan)";
+                    return (
+                      <g key={`trunk-pkt-${trunkPacketCount}-${pIdx}`}>
+                        <animateMotion
+                          dur={`${trunkDur.toFixed(2)}s`}
+                          begin={`${delay.toFixed(2)}s`}
+                          repeatCount="indefinite"
+                          rotate="auto"
+                          path={trunkD}
+                        />
+                        <rect
+                          x={-6}
+                          y={-3}
+                          width={12}
+                          height={6}
+                          rx={2.5}
+                          fill={pColor}
+                          filter={pFilter}
+                        />
+                        <rect
+                          x={-3}
+                          y={-1.5}
+                          width={6}
+                          height={3}
+                          rx={1.2}
+                          fill="#ffffff"
+                          opacity={0.95}
+                        />
+                      </g>
+                    );
+                  })}
+
+                {/* Click target */}
+                <path
+                  d={trunkD}
+                  fill="none"
+                  strokeWidth={22}
+                  className="cursor-pointer stroke-transparent"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelectLink(uplink.id)}
+                />
+
+                {/* Trunk Capacity Readout Pill */}
+                <g transform={`translate(${(SW.x + RX.x) / 2 - 58}, ${SW.y - 20})`}>
+                  <rect
+                    width={116}
+                    height={22}
+                    rx={4}
+                    fill="#060e20"
+                    stroke={isTrunkBurst ? "#ff2357" : "#1e293b"}
+                    strokeWidth={1}
+                    filter={isTrunkBurst ? "url(#glow-burst)" : undefined}
+                  />
+                  <text
+                    x={58}
+                    y={15}
+                    textAnchor="middle"
+                    fill={isTrunkBurst ? "#ff2357" : "#38bdf8"}
+                    className="font-mono text-[10px] font-medium"
+                  >
+                    {formatMbpsValue(uplink.rateMbps)} Mbps ({formatPercent(uplink.utilization * 100, 0)})
+                  </text>
+                </g>
               </g>
-            </g>
-          )}
+            );
+          })()}
 
           {/* ----------------------------------------------------------------
               3. TELEMETRY CONTROL LINK (S1 ↔ M1 MONITOR)
@@ -446,7 +515,7 @@ export function NetworkTopology({
               <g
                 key={host.id}
                 transform={`translate(${x}, ${top})`}
-                className="cursor-pointer transition-all duration-200"
+                className="cursor-pointer transition-all duration-200 group hover:brightness-110"
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectNode(host.id)}
@@ -482,6 +551,7 @@ export function NetworkTopology({
                   stroke={borderColor}
                   strokeWidth={selected || isBurst ? 2 : 1}
                   filter={selected ? "url(#glow-cyan)" : undefined}
+                  className="transition-all duration-200 group-hover:stroke-cyan-400/80"
                 />
 
                 {/* Left Colored Status Accent Bar */}
@@ -593,7 +663,7 @@ export function NetworkTopology({
           {agg && (
             <g
               transform={`translate(${SW.x}, ${SW.y})`}
-              className="cursor-pointer"
+              className="cursor-pointer transition-all duration-200 hover:brightness-125 group"
               role="button"
               tabIndex={0}
               aria-label={`${agg.name}, ${agg.label}, ${agg.ip}`}
@@ -704,7 +774,7 @@ export function NetworkTopology({
           {dest && (
             <g
               transform={`translate(${RX.x - RX.w / 2}, ${RX.y - RX.h / 2})`}
-              className="cursor-pointer"
+              className="cursor-pointer transition-all duration-200 hover:brightness-110 group"
               role="button"
               tabIndex={0}
               aria-label={`${dest.name}, ${dest.label}, ${dest.ip}`}
@@ -725,6 +795,7 @@ export function NetworkTopology({
                 stroke={selectedNodeId === dest.id ? "#00e5ff" : "#1e293b"}
                 strokeWidth={selectedNodeId === dest.id ? 2 : 1.2}
                 filter={selectedNodeId === dest.id ? "url(#glow-cyan)" : undefined}
+                className="transition-all duration-200 group-hover:stroke-cyan-400/80"
               />
 
               {/* Header Bar */}
@@ -772,7 +843,7 @@ export function NetworkTopology({
           {monitor && (
             <g
               transform={`translate(${MON.x - MON.w / 2}, ${MON.y - MON.h / 2})`}
-              className="cursor-pointer"
+              className="cursor-pointer transition-all duration-200 hover:brightness-110 group"
               role="button"
               tabIndex={0}
               aria-label={`${monitor.name}, ${monitor.label}`}
@@ -828,29 +899,26 @@ export function NetworkTopology({
 
 function Legend() {
   const items = [
-    { label: "Nominal Flow", dot: "bg-cyan-400 shadow-[0_0_8px_rgba(0,229,255,0.7)]", desc: "Sub-threshold healthy traffic" },
-    { label: "Microburst Overload", dot: "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-pulse", desc: "Surge exceeding EWMA threshold" },
-    { label: "Rate Limited", dot: "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]", desc: "Kernel HTB shaper active" },
-    { label: "Standby", dot: "bg-slate-600", desc: "Idle state" },
+    { label: "Nominal Flow", dot: "bg-cyan-400 shadow-[0_0_8px_rgba(0,229,255,0.7)]" },
+    { label: "Burst Overload", dot: "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-pulse" },
+    { label: "Rate Limited", dot: "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" },
+    { label: "Standby", dot: "bg-slate-600" },
   ];
 
   return (
-    <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-cyan-500/20 bg-[#040816]/90 px-5 py-3 backdrop-blur-md">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-        <span className="font-mono text-[10px] font-semibold text-cyan-400 uppercase tracking-widest">
-          // FABRIC STATUS
-        </span>
+    <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-white/10 bg-[#040816]/95 px-5 py-2.5 backdrop-blur-md">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5">
         {items.map((item) => (
           <span key={item.label} className="flex items-center gap-2 font-mono text-xs text-slate-300">
             <span className={cn("size-2 rounded-full", item.dot)} />
             <span className="font-medium text-slate-200">{item.label}</span>
-            <span className="hidden text-slate-400 xl:inline">— {item.desc}</span>
           </span>
         ))}
       </div>
-      <span className="font-mono text-[11px] text-cyan-400/80">
-        Click any host, port or switch node to inspect telemetry
-      </span>
+      <div className="flex items-center gap-2 font-mono text-[11px] text-cyan-400/90">
+        <span className="size-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#00e5ff] animate-ping" />
+        <span>Live Packet Transmission Pipeline</span>
+      </div>
     </div>
   );
 }

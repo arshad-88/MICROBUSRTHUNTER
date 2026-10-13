@@ -89,7 +89,6 @@ export default function Overview() {
           <PanelHeader
             title="Traffic oscilloscope"
             icon={Activity}
-            note="High-resolution rate against adaptive threshold and baseline. Coral bands indicate detected microbursts."
             actions={
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 text-xs">
@@ -180,7 +179,6 @@ export default function Overview() {
           <PanelHeader
             title="Network topology"
             icon={Share2}
-            note="Observed endpoints, switch fabric and uplink paths. Stroke width represents real-time load."
             actions={
               <Link
                 to="/dashboard/topology"
@@ -213,9 +211,10 @@ export default function Overview() {
               onClose={() => setSelectedNodeId(null)}
             />
           ) : (
-            <p className="border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">
-              Select any endpoint node or link to inspect live traffic counters and policy state.
-            </p>
+            <div className="border-t border-white/10 px-4 py-2.5 flex items-center justify-between text-xs text-slate-400">
+              <span>Select any host, switch or sink node to inspect telemetry</span>
+              <span className="font-mono text-[10px] text-cyan-400 font-semibold tracking-wider">H1-H4 · S1 · R1</span>
+            </div>
           )}
         </Panel>
 
@@ -226,7 +225,6 @@ export default function Overview() {
             <PanelHeader
               title="Burst attribution"
               icon={OctagonAlert}
-              note="Reported directly by the detector — never fabricated."
               actions={
                 burst ? (
                   <StatusPill tone="burst" pulse>
@@ -278,9 +276,10 @@ export default function Overview() {
               </div>
             ) : (
               <div className="p-4 space-y-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  No active flow exceeds the adaptive burst threshold. Detector is sampling normally.
-                </p>
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs text-emerald-400">
+                  <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#00d294]" />
+                  <span className="font-medium">Fabric Nominal · All sources sub-threshold</span>
+                </div>
                 <div className="divide-y divide-border/60 text-xs border-t border-border pt-2">
                   <KeyValue label="Window width" mono>
                     {snapshot.config.detection.windowMs} ms
@@ -301,7 +300,6 @@ export default function Overview() {
             <PanelHeader
               title="Adaptive mitigation"
               icon={ShieldCheck}
-              note="Dry-run safety gate preserves host network adapter integrity."
               actions={
                 mitigation.active ? (
                   <StatusPill tone="mitigated" pulse>
@@ -369,22 +367,13 @@ export default function Overview() {
           <PanelHeader
             title="Source contribution ranking"
             icon={Share2}
-            note="Ranked by bytes observed during the detection window. High traffic does not imply malicious intent."
-            actions={
-              <Link
-                to="/dashboard/sources"
-                className="flex items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/85"
-              >
-                Full analysis
-                <ArrowUpRight className="size-3" />
-              </Link>
-            }
+            actions={<Tag tone="neutral">Active flows</Tag>}
           />
           <ul className="divide-y divide-border/60">
             {ranked.map((source, index) => {
               const tone: Tone = source.state === "burst" ? "burst" : source.state === "mitigated" ? "mitigated" : "live";
               return (
-                <li key={source.id} className="px-4 py-2.5 hover:bg-surface-2/40 transition-colors">
+                <li key={source.id} className="px-4 py-2.5 hover:bg-white/[0.04] border-l-2 border-transparent hover:border-violet-500 transition-all duration-200">
                   <div className="flex items-center gap-3">
                     <span className="data-mono w-4 shrink-0 text-xs text-muted-foreground/70">
                       {index + 1}
@@ -433,7 +422,6 @@ export default function Overview() {
           <PanelHeader
             title="Event audit stream"
             icon={ScrollText}
-            note="Newest events first. Detections, policy adjustments and recoveries are recorded verbatim."
             actions={
               <Link
                 to="/dashboard/events"
@@ -455,7 +443,7 @@ export default function Overview() {
               {events.map((event) => {
                 const tone = eventTone(event.severity);
                 return (
-                  <li key={event.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-surface-2/40 transition-colors">
+                  <li key={event.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-white/[0.04] hover:translate-x-0.5 transition-all duration-200">
                     <span className="data-mono w-16 shrink-0 pt-0.5 text-xs text-muted-foreground">
                       {formatClock(event.timestamp)}
                     </span>

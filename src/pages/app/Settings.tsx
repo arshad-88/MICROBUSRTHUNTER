@@ -70,7 +70,6 @@ export default function Settings() {
         <PanelHeader
           title="Configuration"
           icon={SettingsIcon}
-          note="Invalid values are rejected on apply and the previous safe configuration is retained."
           actions={
             <>
               {dirty ? (
@@ -134,10 +133,7 @@ export default function Settings() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Panel className="overflow-hidden">
-          <PanelHeader
-            title="Detection engine"
-            note="Educational defaults that make a 10 ms microburst visible in a review."
-          />
+          <PanelHeader title="Detection engine" />
           <div className="space-y-3 px-4 py-3.5">
             <NumberField
               label="Minimum rate (Mbps)"
@@ -197,7 +193,7 @@ export default function Settings() {
         </Panel>
 
         <Panel className="overflow-hidden">
-          <PanelHeader title="Adaptive mitigation" note="Rate-cap policy thresholds and safety limits." />
+          <PanelHeader title="Adaptive mitigation" />
           <div className="space-y-3 px-4 py-3.5">
             <label
               htmlFor="settings-auto-mitigation"
@@ -248,15 +244,11 @@ export default function Settings() {
               error={issueFor("mitigation.recoveryFraction")?.message}
               onChange={(v) => patchMitigation({ recoveryFraction: v })}
             />
-            <p className="border-t border-border pt-2.5 text-[10.5px] leading-4 text-muted-foreground">
-              The cap is applied inside the traffic model. Real interface shaping is performed by
-              the separate Python backend, never from the browser.
-            </p>
           </div>
         </Panel>
 
         <Panel className="overflow-hidden">
-          <PanelHeader title="Simulation & source" note="Deterministic generator and data-source configuration." />
+          <PanelHeader title="Simulation & source" />
           <div className="space-y-3 px-4 py-3.5">
             <div>
               <Label htmlFor="data-source" className="label-caps text-muted-foreground">
@@ -276,10 +268,6 @@ export default function Settings() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
-                The browser build always reports simulated data. Live capture is provided by the
-                separate Python/Scapy backend and must be started explicitly.
-              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <NumberField

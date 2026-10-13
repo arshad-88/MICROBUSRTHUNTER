@@ -171,7 +171,6 @@ export default function TrafficMonitor() {
           <PanelHeader
             title="Traffic time series"
             icon={Activity}
-            note="Observed rate, rolling baseline and the adaptive burst threshold over time."
             actions={
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-medium text-muted-foreground">Range</span>
@@ -218,10 +217,6 @@ export default function TrafficMonitor() {
               </div>
             </div>
           </div>
-          <p className="border-t border-border px-4 py-2.5 text-[10.5px] leading-4 text-muted-foreground">
-            Coral bands mark intervals the detector declared as bursts. A rate spike on this chart
-            is a rate measurement — it is not a measurement of switch-buffer occupancy.
-          </p>
         </Panel>
 
         <div className="space-y-4 xl:col-span-3">
@@ -262,7 +257,7 @@ export default function TrafficMonitor() {
             <div className="space-y-2 px-4 py-3 text-[11px] leading-5 text-muted-foreground">
               <p>
                 Advantage over baseline:{" "}
-                <span className="data-mono text-foreground">
+                <span className="data-mono text-foreground font-semibold">
                   {snapshot.latest && snapshot.latest.baselineMbps > 0
                     ? formatPercent(
                         ((snapshot.latest.rateMbps - snapshot.latest.baselineMbps) /
@@ -272,14 +267,10 @@ export default function TrafficMonitor() {
                     : "—"}
                 </span>
               </p>
-              <p>
-                A burst is declared only when the measured rate exceeds both the absolute minimum
-                and baseline × multiplier for the persistence window.
-              </p>
-              <p className="text-muted-foreground/70">
-                Windows are simulated deterministically from seed{" "}
-                {snapshot.config.simulation.seed}.
-              </p>
+              <div className="flex items-center gap-2 pt-1 border-t border-white/5 text-emerald-400">
+                <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#00d294]" />
+                <span className="font-medium">Active EWMA Evaluation</span>
+              </div>
             </div>
           </Panel>
         </div>
@@ -289,7 +280,6 @@ export default function TrafficMonitor() {
         <PanelHeader
           title="Recent burst events"
           icon={OctagonAlert}
-          note="Every detected burst with the source host, observed peak throughput, and recovery state."
           actions={<Tag tone="neutral">{burstRows.length} recorded</Tag>}
         />
         {burstRows.length === 0 ? (
@@ -317,7 +307,7 @@ export default function TrafficMonitor() {
               </thead>
               <tbody>
                 {burstRows.slice(0, 14).map((row) => (
-                  <tr key={row.id} className="border-b border-border/60 last:border-0">
+                  <tr key={row.id} className="border-b border-border/60 last:border-0 hover:bg-white/[0.04] transition-colors duration-150">
                     <td className="data-mono whitespace-nowrap px-4 py-2.5 text-[11px] text-muted-foreground">
                       {formatClock(row.detectedAt)}
                     </td>
@@ -327,7 +317,7 @@ export default function TrafficMonitor() {
                     <td className="data-mono whitespace-nowrap px-4 py-2.5 text-[11px] text-muted-foreground">
                       {row.sourceIp}
                     </td>
-                    <td className="data-mono px-4 py-2.5 text-[11.5px] text-burst">
+                    <td className="data-mono px-4 py-2.5 text-[11.5px] text-burst font-semibold">
                       {row.peakMbps !== null ? `${formatMbpsValue(row.peakMbps)} Mbps` : "—"}
                     </td>
                     <td className="px-4 py-2.5">
@@ -355,10 +345,6 @@ export default function TrafficMonitor() {
             </table>
           </div>
         )}
-        <p className="border-t border-border px-4 py-2.5 text-[10.5px] text-muted-foreground">
-          Status is derived from the detector's own burst start/end events — the interface does not
-          decide on its own that a burst has recovered.
-        </p>
       </Panel>
     </div>
   );

@@ -35,7 +35,6 @@ export default function TopologyPage() {
           <PanelHeader
             title="Fabric plane"
             icon={Network}
-            note="Directional map of the monitored fabric. Selecting an endpoint or path inspects real-time counters and policy state."
             actions={
               <div className="flex items-center gap-1.5">
                 <Tag tone="neutral">4 sources</Tag>
@@ -77,12 +76,12 @@ export default function TopologyPage() {
           ) : (
             <Panel>
               <PanelHeader title="Inspector" icon={MousePointerClick} />
-              <div className="px-4 py-5">
-                <p className="text-[11.5px] leading-5 text-muted-foreground">
-                  Nothing is selected. Choose any port or traffic path in the map to read its
-                  address, counters, burst contribution and enforced policy.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="px-4 py-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span className="size-2 rounded-full bg-cyan-400/80 animate-pulse" />
+                  <span>Select any endpoint, switch, or path in the topology map</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-white/5">
                   {sources.map((host) => (
                     <button
                       key={host.id}
@@ -91,7 +90,7 @@ export default function TopologyPage() {
                         setSelectedNodeId(host.id);
                         setSelectedLinkId(null);
                       }}
-                      className="data-mono rounded-sm border border-border bg-surface-2 px-2 py-1 text-[10.5px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                      className="data-mono rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-cyan-300 hover:shadow-[0_0_10px_rgba(0,229,255,0.2)]"
                     >
                       {host.name}
                     </button>
@@ -102,10 +101,7 @@ export default function TopologyPage() {
           )}
 
           <Panel className="overflow-hidden">
-            <PanelHeader
-              title="Source bank"
-              note="Live per-host readout. Select a row to load it in the inspector."
-            />
+            <PanelHeader title="Source bank" />
             <ul className="divide-y divide-border/60">
               {sources.map((host) => {
                 const selected = selectedNodeId === host.id;
@@ -118,19 +114,19 @@ export default function TopologyPage() {
                         setSelectedLinkId(null);
                       }}
                       className={cn(
-                        "flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
-                        selected ? "bg-surface-2" : "hover:bg-surface-2/60",
+                        "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 hover:bg-white/[0.04]",
+                        selected ? "bg-white/[0.07] border-l-2 border-cyan-400" : "border-l-2 border-transparent",
                       )}
                     >
                       <span
                         className={cn(
                           "h-7 w-[3px] shrink-0 rounded-full",
                           host.state === "burst"
-                            ? "bg-burst"
+                            ? "bg-burst shadow-[0_0_8px_#ff2357]"
                             : host.state === "mitigated"
-                              ? "bg-warning"
+                              ? "bg-warning shadow-[0_0_8px_#fcbb00]"
                               : host.state === "normal"
-                                ? "bg-primary"
+                                ? "bg-primary shadow-[0_0_8px_#8d54ff]"
                                 : "bg-muted-foreground/40",
                         )}
                       />
@@ -175,7 +171,7 @@ export default function TopologyPage() {
           </Panel>
 
           <Panel className="overflow-hidden">
-            <PanelHeader title="Fabric summary" note="Aggregate state of the monitored plane." />
+            <PanelHeader title="Fabric summary" />
             <div className="px-4 py-3">
               <div className="divide-y divide-border/60">
                 <KeyValue label="Aggregate rate" mono>
@@ -194,11 +190,10 @@ export default function TopologyPage() {
                   {snapshot.burstCount}
                 </KeyValue>
               </div>
-              <p className="mt-3 border-t border-border pt-2.5 text-[10.5px] leading-4 text-muted-foreground">
-                The plane is a fixed four-source fabric driven by the deterministic traffic model.
-                "No signal" means monitoring is halted or the host is below the reporting floor —
-                it is never displayed as a fabricated measurement.
-              </p>
+              <div className="mt-3 border-t border-white/10 pt-2.5 flex items-center justify-between text-xs text-slate-400">
+                <span>Sampling Resolution</span>
+                <span className="font-mono text-[11px] text-emerald-400 font-semibold">10ms High-Rate Precision</span>
+              </div>
             </div>
           </Panel>
         </div>

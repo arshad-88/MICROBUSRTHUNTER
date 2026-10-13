@@ -78,9 +78,9 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="space-y-2.5">
-      <div className="panel-edge flex flex-wrap items-center gap-x-4 gap-y-3 rounded-md border border-border bg-surface px-3.5 py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-white/10 bg-[#0c0d15] p-3.5 shadow-md">
         {/* Mode Selector */}
-        <div className="flex items-center rounded-md border border-border bg-surface-2 p-0.5">
+        <div className="flex items-center rounded-xl border border-white/10 bg-black/50 p-1">
           <button
             type="button"
             onClick={() => {
@@ -91,10 +91,10 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
               });
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-all",
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
               isLive
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-violet-600 text-white shadow-[0_0_12px_rgba(141,84,255,0.4)]"
+                : "text-slate-400 hover:text-white",
             )}
           >
             <Radio className={cn("size-3.5", isCapturing && "text-emerald-300 animate-pulse")} />
@@ -109,13 +109,13 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
               });
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-all",
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
               !isLive
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-violet-600 text-white shadow-[0_0_12px_rgba(141,84,255,0.4)]"
+                : "text-slate-400 hover:text-white",
             )}
           >
-            <Sparkles className="size-3.5" />
+            <Sparkles className="size-3.5 text-amber-300" />
             <span>Simulation</span>
           </button>
         </div>
@@ -287,7 +287,7 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
               <Button
                 type="button"
                 size="sm"
-                className="gap-1.5 rounded-sm border border-burst/50 bg-burst/[0.12] text-burst hover:bg-burst/20"
+                className="gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 shadow-[0_0_15px_-3px_rgba(255,35,87,0.35)] font-semibold text-xs transition-all"
                 onClick={() => {
                   simulateBurst();
                   toast.error("Burst injected", {
@@ -295,19 +295,19 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
                   });
                 }}
               >
-                <Zap className="size-3.5" />
+                <Zap className="size-3.5 fill-current" />
                 Simulate burst
               </Button>
             </Group>
 
-            <span className="hidden h-6 w-px bg-border xl:block" />
+            <span className="hidden h-6 w-px bg-white/10 xl:block" />
 
             <Group label="recover">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="gap-1.5 rounded-sm"
+                className="gap-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs transition-all"
                 onClick={() => {
                   restoreNormal();
                   toast("Traffic restored to normal", {
@@ -315,14 +315,14 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
                   });
                 }}
               >
-                <AlertTriangle className="size-3.5" />
+                <AlertTriangle className="size-3.5 text-amber-400" />
                 Restore normal
               </Button>
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="gap-1.5 rounded-sm text-muted-foreground"
+                className="gap-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-xs transition-all"
                 onClick={() => {
                   reset();
                   toast("Session reset", {
@@ -338,21 +338,21 @@ export function ControlBar({ compact = false }: { compact?: boolean }) {
             <label
               htmlFor="auto-mitigation-strip"
               className={cn(
-                "ml-auto flex cursor-pointer items-center gap-2.5 rounded-sm border px-2.5 py-1.5 transition-colors",
+                "ml-auto flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-1.5 transition-all",
                 mitigationEnabled
-                  ? "border-success/30 bg-success/[0.05]"
-                  : "border-border bg-surface-2",
+                  ? "border-emerald-500/30 bg-emerald-500/10 shadow-[0_0_12px_rgba(0,210,148,0.15)]"
+                  : "border-white/10 bg-black/40",
               )}
             >
               {mitigationEnabled ? (
-                <ShieldCheck className="size-3.5 text-success" aria-hidden="true" />
+                <ShieldCheck className="size-3.5 text-emerald-400" aria-hidden="true" />
               ) : (
-                <ShieldOff className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                <ShieldOff className="size-3.5 text-slate-500" aria-hidden="true" />
               )}
               <span
                 className={cn(
-                  "text-[11px] font-medium",
-                  mitigationEnabled ? "text-success" : "text-muted-foreground",
+                  "text-[11px] font-semibold tracking-wide uppercase",
+                  mitigationEnabled ? "text-emerald-400" : "text-slate-400",
                 )}
               >
                 auto mitigation

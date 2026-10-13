@@ -113,7 +113,6 @@ export default function EventLogs() {
         <PanelHeader
           title="Event timeline"
           icon={ScrollText}
-          note="Audit trail of the monitoring session: lifecycle, detection, attribution, policy and recovery — recorded verbatim."
           actions={
             <>
               <Tag tone="neutral">local storage</Tag>

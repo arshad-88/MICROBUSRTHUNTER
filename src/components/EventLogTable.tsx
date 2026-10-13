@@ -131,7 +131,7 @@ export function EventLogTable({ events }: { events: AppEvent[] }) {
                     event.severity === "critical" && "mbh-pulse",
                   )}
                 />
-                <div className="border-b border-border/60 py-2.5 pr-1">
+                <div className="border-b border-border/60 py-2.5 px-2.5 rounded-xl transition-all duration-200 hover:bg-white/[0.04]">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="data-mono text-xs text-muted-foreground">
                       {formatClock(event.timestamp)}

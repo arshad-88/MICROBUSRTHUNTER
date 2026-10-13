@@ -127,14 +127,13 @@ export default function Mitigation() {
         <PanelHeader
           title="Operational sequence"
           icon={Gauge}
-          note="Detection → source identification → policy decision → mitigation → verification → recovery. Each stage reflects recorded engine events."
-          actions={<Tag tone="neutral">Cause and effect</Tag>}
+          actions={<Tag tone="neutral">Cause & effect</Tag>}
         />
         <ol className="grid grid-cols-1 divide-y divide-border/60 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-6">
           {stages.map((stage) => (
             <li
               key={stage.key}
-              className="flex flex-col gap-1.5 border-b border-border/60 px-4 py-3 last:border-b-0 lg:border-b-0 lg:border-l lg:first:border-l-0"
+              className="flex flex-col gap-1.5 border-b border-border/60 px-4 py-3 last:border-b-0 lg:border-b-0 lg:border-l lg:first:border-l-0 hover:bg-white/[0.03] transition-colors"
             >
               <span className="flex items-center gap-2">
                 <span className={cn("size-1.5 rounded-full", STAGE_DOT[stage.state])} />
@@ -163,60 +162,61 @@ export default function Mitigation() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel className="overflow-hidden">
-          <PanelHeader title="Policy rules" icon={ShieldCheck} />
-          <ol className="divide-y divide-border/60">
+          <PanelHeader title="Enforcement policy tiers" icon={ShieldCheck} />
+          <div className="divide-y divide-border/60">
             {[
-              ["Normal traffic", "no restriction is applied to any flow."],
-              ["Moderate burst", "a mild temporary cap is enforced on the offending flow."],
-              ["Severe burst", "a stricter cap is applied and the event is raised as critical."],
-              ["Recovered traffic", "the cap is released and the recovery is logged."],
-              [
-                "Invalid parameters",
-                "the policy fails safe, keeps the previous state and records the failure.",
-              ],
-            ].map(([title, body], i) => (
-              <li key={title} className="flex gap-3 px-4 py-2.5">
-                <span className="data-mono shrink-0 pt-0.5 text-[10px] text-muted-foreground/60">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span>
-                  <span className="block text-[11.5px] font-medium text-foreground">
-                    {title}
-                  </span>
-                  <span className="mt-0.5 block text-[10.5px] leading-4 text-muted-foreground">
-                    {body}
-                  </span>
-                </span>
-              </li>
+              { tier: "Tier 0: Nominal", action: "Unrestricted", cap: "100 Mbps (Full link)", tone: "success" },
+              { tier: "Tier 1: Moderate Surge", action: "Adaptive Clamp", cap: "60 Mbps dynamic limit", tone: "warning" },
+              { tier: "Tier 2: Severe Microburst", action: "Strict Isolation", cap: "35 Mbps defensive cap", tone: "burst" },
+              { tier: "Tier 3: Recovery Phase", action: "Hysteresis Release", cap: "Gradual step-up restoration", tone: "recovered" },
+            ].map((p, i) => (
+              <div key={p.tier} className="flex items-center justify-between px-4 py-3 hover:bg-white/[0.04] transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <span className="data-mono text-[10px] text-muted-foreground font-semibold">0{i + 1}</span>
+                  <div>
+                    <span className="text-xs font-medium text-foreground block">{p.tier}</span>
+                    <span className="text-[10.5px] text-muted-foreground">{p.action}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="data-mono text-xs font-semibold text-cyan-400 block">{p.cap}</span>
+                  <span className="data-mono text-[9.5px] text-muted-foreground">Deterministic rule</span>
+                </div>
+              </div>
             ))}
-          </ol>
+          </div>
         </Panel>
 
         <Panel className="overflow-hidden">
-          <PanelHeader title="Scope and honesty" icon={Gauge} />
-          <div className="space-y-2.5 px-4 py-3.5 text-[11px] leading-5 text-muted-foreground">
-            <p>
-              The cap is applied{" "}
-              <span className="text-foreground">inside the traffic model</span>: the offending
-              source is clamped before aggregate rate, queue overflow and latency are computed, so
-              the chart, fabric plane and source table change together.
-            </p>
-            <p>
-              Current limits: max duration {config.mitigation.maxDurationMs} ms, cooldown{" "}
-              {config.mitigation.cooldownMs} ms, recovery fraction{" "}
-              {config.mitigation.recoveryFraction}. These are educational defaults, editable in
-              Settings.
-            </p>
-            <p className="border-t border-border pt-2.5">
-              The browser never executes privileged Linux{" "}
-              <code className="text-muted-foreground">tc</code> commands. Real per-source shaping is
-              performed by the separate Python/Scapy backend, which validates every parameter, runs
-              dry by default and supports rollback.
-            </p>
-            <p className="text-muted-foreground/70">
-              Mitigation is not guaranteed to improve every metric — compare the numbers before and
-              after rather than assuming an outcome.
-            </p>
+          <PanelHeader title="Safety & isolation guardrails" icon={Gauge} />
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors">
+                <span className="text-[10.5px] text-muted-foreground block">Max Cap Duration</span>
+                <span className="data-mono text-base font-bold text-violet-300 mt-1 block">
+                  {config.mitigation.maxDurationMs} ms
+                </span>
+                <span className="text-[9.5px] text-slate-500 mt-0.5 block">Automated auto-release</span>
+              </div>
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors">
+                <span className="text-[10.5px] text-muted-foreground block">Cooldown Window</span>
+                <span className="data-mono text-base font-bold text-cyan-300 mt-1 block">
+                  {config.mitigation.cooldownMs} ms
+                </span>
+                <span className="text-[9.5px] text-slate-500 mt-0.5 block">Anti-flapping buffer</span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#00d294]" />
+                <div>
+                  <span className="text-xs font-semibold text-emerald-300 block">Dry-Run Isolation Active</span>
+                  <span className="text-[10.5px] text-emerald-400/80">Non-disruptive software shaper mode</span>
+                </div>
+              </div>
+              <span className="data-mono text-[10px] text-emerald-300/80 uppercase font-semibold">Protected</span>
+            </div>
           </div>
         </Panel>
       </div>

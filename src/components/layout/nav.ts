@@ -1,12 +1,10 @@
 import {
   Activity,
-  FlaskConical,
   Gauge,
   LayoutDashboard,
   Network,
   ScrollText,
   Settings,
-  Share2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,37 +45,23 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Rate, rolling baseline, burst threshold and detected intervals",
   },
   {
-    to: "/dashboard/sources",
-    label: "Source Analysis",
-    code: "04",
-    icon: Share2,
-    description: "Ranked contributors with per-source history and policy",
-  },
-  {
     to: "/dashboard/mitigation",
     label: "Mitigation",
-    code: "05",
+    code: "04",
     icon: Gauge,
     description: "Detection to recovery: cap policy, verification and rollback",
   },
   {
-    to: "/dashboard/experiments",
-    label: "Experiments",
-    code: "06",
-    icon: FlaskConical,
-    description: "Three seeded scenarios with a comparable result set",
-  },
-  {
     to: "/dashboard/events",
     label: "Event Timeline",
-    code: "07",
+    code: "05",
     icon: ScrollText,
     description: "Audit trail of detections, policy changes and recovery",
   },
   {
     to: "/dashboard/settings",
     label: "Settings",
-    code: "08",
+    code: "06",
     icon: Settings,
     description: "Detector, mitigation and simulation parameters",
   },

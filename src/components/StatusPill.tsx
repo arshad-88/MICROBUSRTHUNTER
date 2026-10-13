@@ -82,14 +82,14 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm border px-2 py-[3px] text-[10px] font-medium tracking-wide whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-[10px] font-medium tracking-wide whitespace-nowrap shadow-xs transition-all duration-200 hover:brightness-110 hover:scale-[1.02]",
         t.bg,
         t.text,
         t.border,
         className,
       )}
     >
-      <span className={cn("size-1.5 rounded-full", t.dot, pulse && "mbh-pulse")} />
+      <span className={cn("size-1.5 rounded-full", t.dot, pulse && "animate-pulse")} />
       {children}
     </span>
   );

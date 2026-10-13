@@ -7,7 +7,7 @@ import { AppAuthProvider } from "@/state/auth";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
 // Direct imports for reliable routing without dynamic chunk fetch failures
@@ -18,9 +18,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import Overview from "./pages/app/Overview";
 import TopologyPage from "./pages/app/Topology";
 import TrafficMonitor from "./pages/app/TrafficMonitor";
-import SourceAnalysis from "./pages/app/SourceAnalysis";
 import MitigationPage from "./pages/app/Mitigation";
-import Experiments from "./pages/app/Experiments";
 import EventLogs from "./pages/app/EventLogs";
 import SettingsPage from "./pages/app/Settings";
 
@@ -153,9 +151,9 @@ createRoot(document.getElementById("root")!).render(
                   <Route index element={<Overview />} />
                   <Route path="topology" element={<TopologyPage />} />
                   <Route path="traffic" element={<TrafficMonitor />} />
-                  <Route path="sources" element={<SourceAnalysis />} />
+                  <Route path="sources" element={<Navigate to="/dashboard" replace />} />
                   <Route path="mitigation" element={<MitigationPage />} />
-                  <Route path="experiments" element={<Experiments />} />
+                  <Route path="experiments" element={<Navigate to="/dashboard" replace />} />
                   <Route path="events" element={<EventLogs />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

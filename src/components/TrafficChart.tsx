@@ -351,11 +351,11 @@ export function TrafficChart({
 
       {hovered && geometry && (
         <div
-          className="panel-raised pointer-events-none absolute z-10 w-[184px] rounded-sm border border-border bg-popover px-2.5 py-2"
+          className="pointer-events-none absolute z-20 w-[192px] rounded-xl border border-violet-500/35 bg-[#0e101a]/95 backdrop-blur-md px-3 py-2.5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.8),0_0_20px_-3px_rgba(141,84,255,0.2)]"
           style={{
             left: Math.min(
-              Math.max(geometry.x(hovered.t) - 92, 4),
-              Math.max(4, width - 190),
+              Math.max(geometry.x(hovered.t) - 96, 4),
+              Math.max(4, width - 198),
             ),
             top: 8,
           }}
