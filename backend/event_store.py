@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import sqlite3
+import threading
 import time
 from pathlib import Path
 
@@ -25,9 +26,11 @@ CREATE TABLE IF NOT EXISTS events (
 class EventStore:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
-        self._conn = sqlite3.connect(db_path)
-        self._conn.execute(SCHEMA)
-        self._conn.commit()
+        self._lock = threading.Lock()
+        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        with self._lock:
+            self._conn.execute(SCHEMA)
+            self._conn.commit()
 
     def record(
         self,
@@ -40,15 +43,17 @@ class EventStore:
         rate_mbps: float | None = None,
         data_source: str = "live",
     ) -> None:
-        self._conn.execute(
-            "INSERT INTO events (timestamp, type, severity, source_ip, rate_mbps, action, outcome, data_source)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (time.time(), type, severity, source_ip, rate_mbps, action, outcome, data_source),
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO events (timestamp, type, severity, source_ip, rate_mbps, action, outcome, data_source)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (time.time(), type, severity, source_ip, rate_mbps, action, outcome, data_source),
+            )
+            self._conn.commit()
 
     def export_csv(self, path: str) -> int:
-        rows = self._conn.execute("SELECT * FROM events ORDER BY timestamp").fetchall()
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM events ORDER BY timestamp").fetchall()
         with Path(path).open("w", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(
@@ -67,5 +72,16 @@ class EventStore:
             writer.writerows(rows)
         return len(rows)
 
+    @property
+    def records(self) -> list[dict]:
+        with self._lock:
+            cursor = self._conn.execute(
+                "SELECT id, timestamp, type, severity, source_ip, rate_mbps, action, outcome, data_source"
+                " FROM events ORDER BY id"
+            )
+            cols = [col[0] for col in cursor.description]
+            return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
     def close(self) -> None:
-        self._conn.close()
+        with self._lock:
+            self._conn.close()

@@ -112,7 +112,6 @@ export default function EventLogs() {
       <Panel className="overflow-hidden">
         <PanelHeader
           title="Event timeline"
-          index="07"
           icon={ScrollText}
           note="Audit trail of the monitoring session: lifecycle, detection, attribution, policy and recovery — recorded verbatim."
           actions={

@@ -1,0 +1,93 @@
+{
+  "timestamp_utc": "2026-10-13T09:28:23.701415+00:00",
+  "disclaimer": "In-process microbenchmarks measured using monotonic clock (time.perf_counter()). These numbers quantify Python software execution latency and memory overhead, not live-kernel netlink socket roundtrips or hardware packet transit.",
+  "window_processing": {
+    "sample_count": 1000,
+    "latency_us": {
+      "count": 1000.0,
+      "mean": 13.739,
+      "median": 11.6,
+      "p95": 21.505,
+      "p99": 37.52,
+      "max": 306.8
+    },
+    "throughput_windows_per_sec": 72785.0
+  },
+  "source_ranking": {
+    "sample_count": 1000,
+    "latency_us": {
+      "count": 1000.0,
+      "mean": 13.872,
+      "median": 10.5,
+      "p95": 21.305,
+      "p99": 28.108,
+      "max": 268.4
+    }
+  },
+  "burst_detection": {
+    "sample_count": 1000,
+    "latency_us": {
+      "count": 1000.0,
+      "mean": 8.109,
+      "median": 8.0,
+      "p95": 12.805,
+      "p99": 15.603,
+      "max": 28.2
+    }
+  },
+  "policy_decision": {
+    "sample_count": 500,
+    "latency_us": {
+      "count": 500.0,
+      "mean": 1.692,
+      "median": 1.2,
+      "p95": 2.6,
+      "p99": 2.901,
+      "max": 5.1
+    }
+  },
+  "controller_planning": {
+    "sample_count": 200,
+    "latency_us": {
+      "count": 200.0,
+      "mean": 12.352,
+      "median": 12.3,
+      "p95": 13.805,
+      "p99": 15.337,
+      "max": 30.0
+    }
+  },
+  "event_persistence": {
+    "sample_count": 500,
+    "latency_us": {
+      "count": 500.0,
+      "mean": 3141.854,
+      "median": 3043.4,
+      "p95": 3964.545,
+      "p99": 4651.766,
+      "max": 5311.3
+    }
+  },
+  "detection_to_mitigation_decision": {
+    "sample_count": 500,
+    "latency_us": {
+      "count": 500.0,
+      "mean": 19.337,
+      "median": 16.6,
+      "p95": 32.4,
+      "p99": 60.505,
+      "max": 176.5
+    }
+  },
+  "bounded_shutdown": {
+    "trials": 50,
+    "shutdown_latency_ms": {
+      "count": 50.0,
+      "mean": 0.131,
+      "median": 0.124,
+      "p95": 0.205,
+      "p99": 0.285,
+      "max": 0.299
+    }
+  }
+}

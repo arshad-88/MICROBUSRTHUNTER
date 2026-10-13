@@ -112,7 +112,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   return (
     <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
       {/* brand column */}
-      <div className="relative hidden flex-col justify-between border-r border-border bg-[oklch(0.132_0.012_262)] p-10 lg:flex">
+      <div className="relative hidden flex-col justify-between border-r border-border bg-surface-2/80 p-10 lg:flex">
         <div className="fabric-grid pointer-events-none absolute inset-0 opacity-70" />
         <Link to="/" className="relative flex items-center gap-2.5">
           <MHMark className="size-8" active />

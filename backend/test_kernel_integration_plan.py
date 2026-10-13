@@ -703,28 +703,38 @@ def run_synchronized_measurement(
         f'''
 import socket, time, sys
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.setblocking(False)
 payload = b"X" * 1400
 target_bps = {target_bps}
 interval = 0.001
 bytes_per_tick = int((target_bps / 8) * interval)
 t_start = time.monotonic()
 t_end = t_start + {duration_sec}
+total_attempted_bytes = 0
+total_attempted_pkts = 0
 total_sent = 0
 total_pkts = 0
+sock_throttled = 0
 while time.monotonic() < t_end:
     t_tick = time.monotonic() + interval
-    sent = 0
-    while sent < bytes_per_tick:
-        s.sendto(payload, ("{HOST_IP}", {TEST_PORT}))
-        sent += len(payload)
-        total_sent += len(payload)
-        total_pkts += 1
+    cur_attempt = 0
+    while cur_attempt < bytes_per_tick:
+        total_attempted_bytes += len(payload)
+        total_attempted_pkts += 1
+        cur_attempt += len(payload)
+        try:
+            s.sendto(payload, ("{HOST_IP}", {TEST_PORT}))
+            total_sent += len(payload)
+            total_pkts += 1
+        except (BlockingIOError, OSError):
+            sock_throttled += 1
     sleep_t = t_tick - time.monotonic()
     if sleep_t > 0:
         time.sleep(sleep_t)
 dur = max(0.001, time.monotonic() - t_start)
-offered_mbps = (total_sent * 8.0) / (dur * 1e6)
-print(f"SENDER: offered={{offered_mbps:.2f}} Mbps, bytes={{total_sent}}, pkts={{total_pkts}}, dur={{dur:.4f}}s")
+offered_mbps = (total_attempted_bytes * 8.0) / (dur * 1e6)
+admitted_mbps = (total_sent * 8.0) / (dur * 1e6)
+print(f"SENDER: offered={{offered_mbps:.2f}} Mbps, attempted_bytes={{total_attempted_bytes}}, attempted_pkts={{total_attempted_pkts}}, bytes={{total_sent}}, pkts={{total_pkts}}, dur={{dur:.4f}}s, admitted={{admitted_mbps:.2f}} Mbps, sock_throttled={{sock_throttled}}")
 '''
     ]
 
@@ -733,17 +743,35 @@ print(f"SENDER: offered={{offered_mbps:.2f}} Mbps, bytes={{total_sent}}, pkts={{
         snd_proc = subprocess.run(snd_cmd, capture_output=True, text=True, check=True)
         results["sender_output"] = snd_proc.stdout.strip()
         m_offered = re.search(r"offered=([0-9.]+)\s+Mbps", snd_proc.stdout)
-        m_bytes = re.search(r"bytes=(\d+)", snd_proc.stdout)
-        m_pkts = re.search(r"pkts=(\d+)", snd_proc.stdout)
+        m_att_bytes = re.search(r"attempted_bytes=(\d+)", snd_proc.stdout)
+        m_att_pkts = re.search(r"attempted_pkts=(\d+)", snd_proc.stdout)
+        m_bytes = re.search(r"\bbytes=(\d+)", snd_proc.stdout)
+        m_pkts = re.search(r"\bpkts=(\d+)", snd_proc.stdout)
         m_dur = re.search(r"dur=([0-9.]+)\s*s", snd_proc.stdout)
+        m_admitted = re.search(r"admitted=([0-9.]+)\s+Mbps", snd_proc.stdout)
+        m_throttled = re.search(r"sock_throttled=(\d+)", snd_proc.stdout)
         if m_offered:
             results["sender_offered_mbps"] = float(m_offered.group(1))
+        if m_att_bytes:
+            results["sender_attempted_bytes"] = int(m_att_bytes.group(1))
+        elif m_bytes:
+            results["sender_attempted_bytes"] = int(m_bytes.group(1))
+        if m_att_pkts:
+            results["sender_attempted_pkts"] = int(m_att_pkts.group(1))
+        elif m_pkts:
+            results["sender_attempted_pkts"] = int(m_pkts.group(1))
         if m_bytes:
+            results["sender_admitted_bytes"] = int(m_bytes.group(1))
             results["sender_bytes"] = int(m_bytes.group(1))
         if m_pkts:
+            results["sender_admitted_pkts"] = int(m_pkts.group(1))
             results["sender_pkts"] = int(m_pkts.group(1))
         if m_dur:
             results["sender_duration_sec"] = float(m_dur.group(1))
+        if m_admitted:
+            results["sender_admitted_mbps"] = float(m_admitted.group(1))
+        if m_throttled:
+            results["sender_sock_throttled_pkts"] = int(m_throttled.group(1))
     except Exception as s_exc:
         sender_exc = s_exc
     finally:
@@ -778,6 +806,10 @@ print(f"SENDER: offered={{offered_mbps:.2f}} Mbps, bytes={{total_sent}}, pkts={{
     if "sender_pkts" in results and "packets" in results:
         results["packet_count_diff"] = results["sender_pkts"] - results["packets"]
         results["packet_delta"] = results["packet_count_diff"]
+        results["receiver_bytes"] = results.get("bytes", 0)
+        results["receiver_pkts"] = results.get("packets", 0)
+        results["receiver_loss_pkts"] = max(0, results["sender_pkts"] - results["packets"])
+        results["receiver_loss_pct"] = round((results["receiver_loss_pkts"] / results["sender_pkts"] * 100.0) if results["sender_pkts"] > 0 else 0.0, 3)
 
     results["desc"] = desc
     return results
@@ -856,6 +888,7 @@ def run_full_integration_orchestration(
     ctrl: TcController,
     tracker: FailureSafeResourceTracker,
     measurement_fn: Callable[[str, int, float], dict[str, Any]] = run_synchronized_measurement,
+    run_extended: bool = False,
 ) -> dict[str, Any]:
     """Execute traffic measurement, mitigation application, and hierarchy checks."""
     # 1. Verify pre-existing administrator parent hierarchy
@@ -874,7 +907,12 @@ def run_full_integration_orchestration(
         raise AssertionError("Default class 1:30 must handle unshaped baseline traffic!")
 
     # 3. Apply 35 Mbps per-source cap through persistent controller
-    ctrl.apply_source_cap(src_ip=PEER_IP, rate_mbps=CAP_RATE_MBPS, handle=PARENT_HANDLE)
+    ctrl.apply_source_cap(
+        src_ip=PEER_IP,
+        rate_mbps=CAP_RATE_MBPS,
+        handle=PARENT_HANDLE,
+        parent_class=f"{PARENT_HANDLE}:1",
+    )
 
     # 4. Mitigated measurement
     pre_mit_10 = ctrl.get_class_stat("1:10")
@@ -901,12 +939,206 @@ def run_full_integration_orchestration(
     if not any(c["class_id"] == "1:10" for c in active_hier.get("classes", [])):
         raise AssertionError("Child class 1:10 missing from kernel hierarchy during active mitigation!")
 
-    return {
+    report: dict[str, Any] = {
         "baseline": base_res,
         "mitigated": mit_res,
         "delta_base_30": delta_base_30,
         "delta_mit_10": delta_mit_10,
     }
+
+    if not run_extended:
+        return report
+
+    # Phase 5: Multi-interval overload validation under genuine offered load (Target 100 Mbps against 35 Mbps Cap)
+    LOG.info("Phase 5: Running multi-interval overload validation (3 bounded intervals)...")
+    overload_runs: list[dict[str, Any]] = []
+    for r_idx in range(1, 4):
+        c10_pre = ctrl.get_class_stat("1:10")
+        run_res = measurement_fn(f"OVERLOAD_RUN_{r_idx}", 100_000_000, 2.0)
+        c10_post = ctrl.get_class_stat("1:10")
+        c10_bytes_delta = (c10_post["bytes"] - c10_pre["bytes"]) if (c10_pre and c10_post) else 0
+        c10_pkts_delta = (c10_post["packets"] - c10_pre["packets"]) if (c10_pre and c10_post) else 0
+        c10_over_delta = (c10_post.get("overlimits", 0) - c10_pre.get("overlimits", 0)) if (c10_pre and c10_post) else 0
+        c10_drops_delta = (c10_post.get("drops", 0) - c10_pre.get("drops", 0)) if (c10_pre and c10_post) else 0
+
+        r_mbps = run_res.get("mbps", 0.0)
+        # Documented tolerance: 31.5 to 38.5 Mbps (35.0 Mbps +/- 10%)
+        if not (31.5 <= r_mbps <= 38.5):
+            raise AssertionError(
+                f"Overload run {r_idx} receiver rate {r_mbps:.2f} Mbps outside documented tolerance [31.5, 38.5] Mbps!"
+            )
+
+        overload_runs.append({
+            "run": r_idx,
+            "offered_mbps": run_res.get("sender_offered_mbps", 0.0),
+            "admitted_mbps": run_res.get("sender_admitted_mbps", r_mbps),
+            "receiver_mbps": r_mbps,
+            "attempted_bytes": run_res.get("sender_attempted_bytes", 0),
+            "attempted_pkts": run_res.get("sender_attempted_pkts", 0),
+            "admitted_bytes": run_res.get("sender_admitted_bytes", run_res.get("sender_bytes", 0)),
+            "admitted_pkts": run_res.get("sender_admitted_pkts", run_res.get("sender_pkts", 0)),
+            "receiver_bytes": run_res.get("receiver_bytes", run_res.get("bytes", 0)),
+            "receiver_pkts": run_res.get("receiver_pkts", run_res.get("packets", 0)),
+            "receiver_loss_pkts": run_res.get("receiver_loss_pkts", 0),
+            "receiver_loss_pct": run_res.get("receiver_loss_pct", 0.0),
+            "socket_throttled_pkts": run_res.get("sender_sock_throttled_pkts", 0),
+            "class_1_10_bytes": c10_bytes_delta,
+            "class_1_10_pkts": c10_pkts_delta,
+            "class_1_10_overlimits": c10_over_delta,
+            "class_1_10_drops": c10_drops_delta,
+        })
+        LOG.info(
+            "Overload Run %d: offered=%.2f Mbps, admitted=%.2f Mbps, received=%.2f Mbps, sock_throttled=%d, class_overlimits=%d",
+            r_idx,
+            overload_runs[-1]["offered_mbps"],
+            overload_runs[-1]["admitted_mbps"],
+            r_mbps,
+            overload_runs[-1]["socket_throttled_pkts"],
+            c10_over_delta,
+        )
+
+    summary_stats = {
+        "trials": len(overload_runs),
+        "mean_offered_mbps": round(sum(r["offered_mbps"] for r in overload_runs) / len(overload_runs), 2),
+        "mean_admitted_mbps": round(sum(r["admitted_mbps"] for r in overload_runs) / len(overload_runs), 2),
+        "mean_receiver_mbps": round(sum(r["receiver_mbps"] for r in overload_runs) / len(overload_runs), 2),
+        "mean_socket_throttled_pkts": int(sum(r["socket_throttled_pkts"] for r in overload_runs) / len(overload_runs)),
+        "mean_class_1_10_overlimits": int(sum(r["class_1_10_overlimits"] for r in overload_runs) / len(overload_runs)),
+        "mean_class_1_10_bytes": int(sum(r["class_1_10_bytes"] for r in overload_runs) / len(overload_runs)),
+        "mean_receiver_loss_pkts": int(sum(r["receiver_loss_pkts"] for r in overload_runs) / len(overload_runs)),
+        "mean_receiver_loss_pct": round(sum(r["receiver_loss_pct"] for r in overload_runs) / len(overload_runs), 3),
+    }
+    report["summary_stats"] = summary_stats
+
+    # Phase 5: Dual-flow validation (Default class 1:30 remains functional during active 1:10 cap)
+    LOG.info("Phase 5: Verifying concurrent default class 1:30 flow during active 1:10 cap...")
+    c30_pre = ctrl.get_class_stat("1:30")
+    subprocess.run(["sudo", "ip", "netns", "exec", TEST_NETNS, "ip", "addr", "add", "10.200.1.3/24", "dev", PEER_VETH], check=True)
+    try:
+        dual_cmd = [
+            "ip", "netns", "exec", TEST_NETNS, "python3", "-c",
+            f'''
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.bind(("10.200.1.3", 0))
+payload = b"Y" * 1400
+for _ in range(1500):
+    s.sendto(payload, ("{HOST_IP}", 9998))
+'''
+        ]
+        subprocess.run(dual_cmd, check=True)
+    finally:
+        subprocess.run(["sudo", "ip", "netns", "exec", TEST_NETNS, "ip", "addr", "del", "10.200.1.3/24", "dev", PEER_VETH], check=False)
+
+    c30_post = ctrl.get_class_stat("1:30")
+    c30_delta = (c30_post["bytes"] - c30_pre["bytes"]) if (c30_pre and c30_post) else 0
+    if c30_delta <= 0:
+        raise AssertionError("Default class 1:30 did not record bytes for unclassified probe traffic during active cap!")
+
+    report["overload_runs"] = overload_runs
+    report["default_class_30_probe_bytes"] = c30_delta
+
+    # 7. Test manual rollback & verification of child resource absence in live kernel
+    LOG.info("Testing manual rollback and absence verification in live kernel...")
+    ctrl.rollback()
+    post_rb_hier = ctrl.inspect_current_hierarchy(parent_handle=PARENT_HANDLE)
+    if not post_rb_hier.get("root_qdisc") or post_rb_hier["root_qdisc"]["kind"] != "htb":
+        raise AssertionError("Root HTB qdisc missing after rollback!")
+    if any(c["class_id"] == "1:10" for c in post_rb_hier.get("classes", [])):
+        raise AssertionError("Child class 1:10 still exists in kernel after rollback!")
+    if ctrl.get_class_stat("1:10") is not None:
+        raise AssertionError("Child class 1:10 stats still exist in kernel after rollback!")
+
+    # 8. Re-apply cap after verified removal (verifying clean re-application)
+    LOG.info("Testing clean re-application after rollback...")
+    ctrl.apply_source_cap(
+        src_ip=PEER_IP,
+        rate_mbps=CAP_RATE_MBPS,
+        handle=PARENT_HANDLE,
+        parent_class=f"{PARENT_HANDLE}:1",
+    )
+    reapplied_stat = ctrl.get_class_stat("1:10")
+    if reapplied_stat is None:
+        raise AssertionError("Class 1:10 must exist in kernel after re-application!")
+
+    # 9. Test live timeout-driven rollback via CapturePipeline
+    LOG.info("Testing live pipeline timeout-driven rollback in namespace...")
+    from main import CapturePipeline
+    from config import RuntimeConfig
+    from burst_detector import BurstEvent
+    from event_store import EventStore
+
+    cfg = RuntimeConfig()
+    cfg.mitigation.auto_enabled = True
+    cfg.mitigation.max_duration_ms = 200  # 200 ms wall-clock ceiling
+    cfg.dry_run = False
+    live_store = EventStore(":memory:")
+
+    # Roll back ctrl before handing off to pipeline
+    ctrl.rollback()
+    pipeline = CapturePipeline(cfg=cfg, interface=PEER_VETH, store=live_store, controller=ctrl)
+
+    timeout_event = BurstEvent(
+        started_at_ms=100.0,
+        ended_at_ms=None,
+        peak_mbps=150.0,
+        baseline_mbps=10.0,
+        threshold_mbps=80.0,
+        source_ip=PEER_IP,
+        contribution_pct=95.0,
+        severity="severe",
+        detection_delay_ms=20.0,
+    )
+    pipeline.on_event("burst_detected", timeout_event)
+    if ctrl.get_class_stat("1:10") is None:
+        raise AssertionError("Class 1:10 was not applied by live CapturePipeline!")
+
+    # Wait for wall-clock timeout to fire
+    time.sleep(0.35)
+
+    if ctrl.get_class_stat("1:10") is not None:
+        raise AssertionError("Class 1:10 still present in kernel after live pipeline timeout!")
+    if pipeline.active_mitigation is not None:
+        raise AssertionError("Pipeline active_mitigation was not cleared after timeout!")
+
+    expired_records = [r for r in live_store.records if r["type"] == "mitigation_expired"]
+    if len(expired_records) == 0:
+        raise AssertionError("No mitigation_expired record found in store!")
+
+    # 10. Test live conflicting mitigation rejection
+    LOG.info("Testing live conflicting mitigation rejection on occupied controller...")
+    pipeline2 = CapturePipeline(cfg=cfg, interface=PEER_VETH, store=live_store, controller=ctrl)
+    pipeline2.on_event("burst_detected", timeout_event)
+    conflict_event = BurstEvent(
+        started_at_ms=150.0,
+        ended_at_ms=None,
+        peak_mbps=160.0,
+        baseline_mbps=10.0,
+        threshold_mbps=80.0,
+        source_ip="10.200.1.99",
+        contribution_pct=95.0,
+        severity="severe",
+        detection_delay_ms=20.0,
+    )
+    pipeline2.on_event("burst_detected", conflict_event)
+    busy_records = [
+        r for r in live_store.records
+        if r["type"] in ("mitigation_failed", "mitigation_decision") and "busy" in r.get("outcome", "")
+    ]
+    if len(busy_records) == 0:
+        raise AssertionError("Conflicting mitigation on busy controller was not rejected!")
+
+    pipeline2.close()
+    pipeline.close()
+    live_store.close()
+
+    report.update({
+        "manual_rollback_verified": True,
+        "reapply_verified": True,
+        "live_timeout_verified": True,
+        "live_conflict_rejection_verified": True,
+    })
+    return report
 
 
 def run_unified_integration_lifecycle(
@@ -914,6 +1146,7 @@ def run_unified_integration_lifecycle(
     controller_factory: Callable[[], TcController] | None = None,
     measurement_fn: Callable[[str, int, float], dict[str, Any]] = run_synchronized_measurement,
     topology_verifier: Callable[[], None] | None = None,
+    run_extended: bool = False,
 ) -> dict[str, Any]:
     """Unified single-entry point managing setup, testbed execution, rollback, and cleanup.
 
@@ -945,7 +1178,7 @@ def run_unified_integration_lifecycle(
         ctrl_holder[0] = ctrl
 
         # 4. Execute orchestration
-        return run_full_integration_orchestration(ctrl, tracker, measurement_fn=measurement_fn)
+        return run_full_integration_orchestration(ctrl, tracker, measurement_fn=measurement_fn, run_extended=run_extended)
 
     class _ProxyController:
         def rollback(self) -> None:
@@ -1001,6 +1234,29 @@ def print_harness_audit_report() -> None:
     print("================================================================================")
 
 
+def run_live_injected_failure_cleanup_test() -> None:
+    """Verify that an unexpected failure during live execution triggers 100% cleanup with 0 leftovers."""
+    temp_tracker = FailureSafeResourceTracker()
+    temp_tracker.clear()
+
+    def _failing_workflow() -> None:
+        execute_tracked_setup(temp_tracker)
+        raise RuntimeError("Injected deliberate failure during live workflow to test cleanup")
+
+    failed = False
+    try:
+        execute_testbed_lifecycle(None, temp_tracker, _failing_workflow)
+    except RuntimeError as exc:
+        if "Injected deliberate failure" in str(exc):
+            failed = True
+    if not failed:
+        raise AssertionError("Injected failure was not propagated properly!")
+
+    leftovers = temp_tracker.verify_cleanup_state()
+    if leftovers:
+        raise AssertionError(f"Cleanup after injected failure failed: leftovers={leftovers}")
+
+
 def run_authorized_live_kernel_test() -> dict[str, Any]:
     """Execute authorized live kernel integration test with explicit preconditions and safeguards."""
     if sys.platform != "linux":
@@ -1038,7 +1294,33 @@ def run_authorized_live_kernel_test() -> dict[str, Any]:
     print("================================================================================")
 
     TRACKER.clear()
-    report = run_unified_integration_lifecycle(tracker=TRACKER)
+    report = run_unified_integration_lifecycle(
+        tracker=TRACKER, topology_verifier=verify_testbed_topology_and_routing, run_extended=True
+    )
+
+    print("\n[RUNNER] Running injected failure cleanup verification...")
+    run_live_injected_failure_cleanup_test()
+    print("[RUNNER] Injected failure cleanup verification PASSED: 0 leftovers confirmed.")
+
+    # Export machine-readable JSON artifact
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overload_benchmark_results.json")
+    try:
+        import json
+        from datetime import datetime, timezone
+        export_payload = {
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "target_interface": PEER_VETH,
+            "target_namespace": TEST_NETNS,
+            "configured_cap_mbps": CAP_RATE_MBPS,
+            "target_offered_mbps": TARGET_OFFERED_MBPS,
+            "report": report,
+        }
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(export_payload, f, indent=2)
+        print(f"[RUNNER] Overload benchmark results exported to {json_path}")
+    except Exception as exc:
+        print(f"[RUNNER] Warning: Failed to export results to {json_path}: {exc}")
+
     return report
 
 

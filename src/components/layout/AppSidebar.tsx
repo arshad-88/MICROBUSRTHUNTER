@@ -46,16 +46,6 @@ function NavRailItem({
               isActive ? "opacity-100" : "opacity-0",
             )}
           />
-          {expanded && (
-            <span
-              className={cn(
-                "data-mono w-4 text-[10px]",
-                isActive ? "text-primary" : "text-muted-foreground/60",
-              )}
-            >
-              {item.code}
-            </span>
-          )}
           <span className="relative">
             <item.icon
               className={cn(
@@ -73,8 +63,9 @@ function NavRailItem({
             className={cn(
               "truncate font-medium",
               expanded
-                ? "text-[12.5px]"
-                : "label-caps text-[8.5px] tracking-[0.12em]",
+                ? "text-[13px]"
+                : "text-[10px]",
+              isActive ? "text-foreground font-semibold" : "text-muted-foreground group-hover:text-foreground",
             )}
           >
             {expanded ? item.label : item.label.split(" ")[0]}
@@ -89,7 +80,8 @@ function NavRailItem({
 }
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { snapshot } = useMonitoring();
+  const { snapshot, mode } = useMonitoring();
+  const isLive = mode === "live" || snapshot.dataSource === "live";
 
   return (
     <div className="flex h-full flex-col">
@@ -102,7 +94,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         aria-label="Primary"
         className="flex-1 overflow-y-auto px-2 py-4 lg:px-1.5"
       >
-        <p className="label-caps px-2.5 pb-2 text-muted-foreground/60">
+        <p className="px-2.5 pb-2 text-[11px] font-medium text-muted-foreground">
           {GROUP_LABEL}
         </p>
         <div className="flex flex-col gap-1">
@@ -120,25 +112,34 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-sidebar-border px-3 py-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="label-caps text-muted-foreground">Monitor</span>
+          <span className="text-[11px] font-medium text-muted-foreground">Status</span>
           <span
             className={cn(
-              "data-mono text-[10px]",
+              "data-mono text-[11px] font-semibold",
               snapshot.running ? "text-success" : "text-muted-foreground",
             )}
           >
-            {snapshot.running ? "SAMPLING" : "HALTED"}
+            {snapshot.running ? (isLive ? "SNIFFING" : "SAMPLING") : "HALTED"}
           </span>
         </div>
-        <div className="mt-2 flex items-baseline justify-between gap-2">
-          <span className="text-[11px] text-muted-foreground">Sim clock</span>
+        <div className="mt-1.5 flex items-baseline justify-between gap-2">
+          <span className="text-[11px] text-muted-foreground">Source</span>
+          <span className="data-mono text-[11px] text-foreground truncate max-w-[120px]" title={isLive ? (snapshot.interfaceName ?? "Live adapter") : "Simulated fabric"}>
+            {isLive ? (snapshot.interfaceName ?? "Live adapter") : "Simulated fabric"}
+          </span>
+        </div>
+        <div className="mt-1.5 flex items-baseline justify-between gap-2">
+          <span className="text-[11px] text-muted-foreground">Elapsed</span>
           <span className="data-mono text-[11px] text-foreground">
-            {formatSimTime(snapshot.simTime)}
+            {isLive ? `${(snapshot.simTime / 1000).toFixed(1)}s` : formatSimTime(snapshot.simTime)}
           </span>
         </div>
-        <p className="mt-2.5 border-t border-sidebar-border/70 pt-2.5 text-[10px] leading-4 text-muted-foreground/70">
-          Browser build reports simulated measurements only — never live capture.
-        </p>
+        <div className="mt-2.5 border-t border-sidebar-border/70 pt-2 flex items-center gap-1.5">
+          <span className={cn("size-2 rounded-full", isLive ? "bg-primary" : "bg-muted-foreground/60")} />
+          <span className="text-[10px] text-muted-foreground">
+            {isLive ? "Live Npcap packet capture" : "Synthetic traffic generator"}
+          </span>
+        </div>
       </div>
     </div>
   );

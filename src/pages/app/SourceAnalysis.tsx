@@ -234,7 +234,6 @@ export default function SourceAnalysis() {
         <Panel className="overflow-hidden xl:col-span-5">
           <PanelHeader
             title="Ranked contributors"
-            index="04"
             icon={Share2}
             note="Ordered by measured byte share during the burst window, then by observed rate."
             actions={

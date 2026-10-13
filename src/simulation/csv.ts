@@ -1,3 +1,5 @@
+import { EVENT_TYPE_LABELS, type AppEvent } from "@/types";
+
 /** Minimal CSV serialization used for real event / experiment exports. */
 
 export interface CsvColumn<T> {
@@ -50,4 +52,23 @@ export function timestampSlug(date = new Date()): string {
     pad(date.getMinutes()),
     pad(date.getSeconds()),
   ].join("");
+}
+
+export function exportEventsCsv(events: AppEvent[]): void {
+  const csv = toCsv(events, [
+    { key: "timestamp", header: "Timestamp", value: (r) => new Date(r.timestamp).toISOString() },
+    { key: "type", header: "Event type", value: (r) => EVENT_TYPE_LABELS[r.type] ?? r.type },
+    { key: "severity", header: "Severity", value: (r) => r.severity },
+    { key: "sourceIp", header: "Source IP", value: (r) => r.sourceIp ?? "" },
+    { key: "hostName", header: "Host", value: (r) => r.hostName ?? "" },
+    {
+      key: "rate",
+      header: "Rate (Mbps)",
+      value: (r) => (r.rateMbps !== undefined ? r.rateMbps.toFixed(3) : ""),
+    },
+    { key: "action", header: "Action taken", value: (r) => r.action },
+    { key: "outcome", header: "Outcome", value: (r) => r.outcome },
+    { key: "dataSource", header: "Data source", value: (r) => r.dataSource },
+  ]);
+  downloadCsv(`microbursthunter-events-${timestampSlug()}.csv`, csv);
 }

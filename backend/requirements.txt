@@ -1,3 +1,4 @@
 # MicroburstHunter live-capture backend
 # Capture + traffic shaping require Linux and elevated privileges.
 scapy>=2.5.0
+flask>=3.0.0

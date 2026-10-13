@@ -64,10 +64,9 @@ function ComparisonPanel({
     <Panel className="overflow-hidden">
       <PanelHeader
         title="Before / after comparison"
-        index="05"
         icon={Gauge}
         note="Windows immediately before the cap and while it is enforced. Both sides use the same scale and units."
-        actions={<Tag tone="mitigated">simulated model</Tag>}
+        actions={<Tag tone="mitigated">Dry-run model</Tag>}
       />
       {!hasData ? (
         <div className="px-4 py-8 text-center">
@@ -204,7 +203,6 @@ export function MitigationPanel() {
       <Panel className="overflow-hidden xl:col-span-7">
         <PanelHeader
           title="Mitigation control"
-          index="05"
           icon={ShieldCheck}
           note="Operates on the simulation model. The offending source is clamped before rates and queue effects are computed."
           actions={

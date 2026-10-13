@@ -1770,7 +1770,7 @@ class TcControllerSafetyTests(unittest.TestCase):
         import os
         from test_kernel_integration_plan import run_authorized_live_kernel_test, HarnessExecutionError
 
-        with patch.dict(os.environ, {"MBH_ALLOW_PRIVILEGED_EXEC": "0"}):
+        with patch("sys.platform", "linux"), patch.dict(os.environ, {"MBH_ALLOW_PRIVILEGED_EXEC": "0"}):
             with self.assertRaisesRegex(HarnessExecutionError, "Privileged execution not authorized"):
                 run_authorized_live_kernel_test()
 

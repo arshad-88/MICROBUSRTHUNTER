@@ -126,10 +126,9 @@ export default function Mitigation() {
       <Panel className="overflow-hidden">
         <PanelHeader
           title="Operational sequence"
-          index="05"
           icon={Gauge}
           note="Detection → source identification → policy decision → mitigation → verification → recovery. Each stage reflects recorded engine events."
-          actions={<Tag tone="neutral">cause and effect</Tag>}
+          actions={<Tag tone="neutral">Cause and effect</Tag>}
         />
         <ol className="grid grid-cols-1 divide-y divide-border/60 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-6">
           {stages.map((stage) => (

@@ -45,20 +45,20 @@ export function EventLogTable({ events }: { events: AppEvent[] }) {
         <span
           role="group"
           aria-label="Filter by severity"
-          className="flex overflow-hidden rounded-sm border border-border"
+          className="flex overflow-hidden rounded border border-border"
         >
           <button
             type="button"
             aria-pressed={severityFilter === "all"}
             onClick={() => setSeverityFilter("all")}
             className={cn(
-              "label-caps px-2.5 py-1.5 text-[9px] transition-colors",
+              "px-2.5 py-1 text-xs font-medium transition-colors",
               severityFilter === "all"
                 ? "bg-surface-2 text-foreground"
                 : "text-muted-foreground hover:bg-surface-2/60",
             )}
           >
-            all {events.length}
+            All ({events.length})
           </button>
           {SEVERITIES.map((severity) => (
             <button
@@ -67,14 +67,14 @@ export function EventLogTable({ events }: { events: AppEvent[] }) {
               aria-pressed={severityFilter === severity}
               onClick={() => setSeverityFilter(severity)}
               className={cn(
-                "label-caps flex items-center gap-1.5 border-l border-border px-2.5 py-1.5 text-[9px] transition-colors",
+                "flex items-center gap-1.5 border-l border-border px-2.5 py-1 text-xs font-medium transition-colors capitalize",
                 severityFilter === severity
                   ? cn("bg-surface-2", toneText[eventTone(severity)])
                   : "text-muted-foreground hover:bg-surface-2/60",
               )}
             >
-              <span className={cn("size-1.5 rounded-full", toneFill[eventTone(severity)])} />
-              {severity} {counts[severity]}
+              <span className={cn("size-2 rounded-full", toneFill[eventTone(severity)])} />
+              {severity} ({counts[severity]})
             </button>
           ))}
         </span>
@@ -133,27 +133,27 @@ export function EventLogTable({ events }: { events: AppEvent[] }) {
                 />
                 <div className="border-b border-border/60 py-2.5 pr-1">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="data-mono text-[10.5px] text-muted-foreground">
+                    <span className="data-mono text-xs text-muted-foreground">
                       {formatClock(event.timestamp)}
                     </span>
-                    <span className={cn("label-caps text-[9px]", toneText[tone])}>
+                    <span className={cn("text-xs font-semibold", toneText[tone])}>
                       {EVENT_TYPE_LABELS[event.type]}
                     </span>
-                    <span className="label-caps text-[9px] text-muted-foreground/60">
+                    <span className="text-[11px] text-muted-foreground capitalize">
                       {event.severity}
                     </span>
                     {event.sourceIp && (
-                      <span className="data-mono text-[10.5px] text-muted-foreground">
+                      <span className="data-mono text-xs text-muted-foreground">
                         {event.sourceIp}
                       </span>
                     )}
                     {event.rateMbps !== undefined && (
-                      <span className={cn("data-mono text-[10.5px]", toneText[tone])}>
+                      <span className={cn("data-mono text-xs font-semibold", toneText[tone])}>
                         {formatMbpsValue(event.rateMbps)} Mbps
                       </span>
                     )}
-                    <span className="data-mono ml-auto text-[9.5px] text-muted-foreground/50">
-                      {event.dataSource}
+                    <span className="data-mono ml-auto text-[10px] text-muted-foreground/70">
+                      {event.dataSource === "live" ? "Live Scapy" : "Simulation"}
                     </span>
                   </div>
                   <p className="mt-1 text-[12px] text-foreground">{event.action}</p>

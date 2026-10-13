@@ -87,12 +87,14 @@ export default function Experiments() {
     <div className="space-y-4">
       <Panel className="overflow-hidden">
         <PanelHeader
-          title="Scenario"
-          index="06"
+          title="Scenario selection"
           icon={FlaskConical}
           note="Three reproducible scenarios share one generator. Identical settings and seed keep the results comparable."
           actions={
-            <Tag tone="live">seed {config.simulation.seed}</Tag>
+            <div className="flex items-center gap-2">
+              <Tag tone="neutral">Simulated benchmark</Tag>
+              <Tag tone="live">Seed {config.simulation.seed}</Tag>
+            </div>
           }
         />
         <div

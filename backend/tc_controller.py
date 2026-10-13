@@ -282,30 +282,63 @@ class TcController:
         validate_namespace(self.namespace)
 
     def default_route_interface(self) -> str | None:
+        cmd = ["ip"]
+        if self.namespace:
+            cmd.extend(["netns", "exec", self.namespace, "ip"])
+        cmd.extend(["route", "show", "default"])
         try:
-            cmd = ["ip"]
-            if self.namespace:
-                cmd.extend(["netns", "exec", self.namespace, "ip"])
-            cmd.extend(["route", "show", "default"])
-            out = subprocess.run(
+            res = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 check=False,
-            ).stdout
-        except FileNotFoundError:
-            return None
+                timeout=5.0,
+            )
+        except FileNotFoundError as exc:
+            raise TcError(f"Route inspection tool 'ip' not found: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise TcError(f"Route inspection command timed out after 5.0s: {exc}") from exc
+        except PermissionError as exc:
+            raise TcError(f"Permission denied during route inspection: {exc}") from exc
+        except Exception as exc:
+            raise TcError(f"Failed to execute route inspection: {exc}") from exc
+
+        if res.returncode != 0:
+            raise TcError(
+                f"Route inspection failed with return code {res.returncode}: {res.stderr.strip()}"
+            )
+
+        out = res.stdout.strip()
+        if not out:
+            # An isolated network namespace has no default route by design
+            if self.namespace is not None:
+                return None
+            raise TcError("Route inspection produced empty output; cannot verify default route")
+
         match = re.search(r"dev\s+(\S+)", out)
-        return match.group(1) if match else None
+        if not match:
+            raise TcError(f"Unparseable default route output: {out!r}")
+
+        return match.group(1)
 
     def assert_safe_interface(self) -> None:
         validate_interface(self.interface)
         validate_namespace(self.namespace)
-        default_iface = self.default_route_interface()
-        if default_iface and default_iface == self.interface:
+        try:
+            default_iface = self.default_route_interface()
+        except TcError as exc:
+            raise TcError(
+                f"Refusing to modify interface {self.interface!r}: cannot verify safety: {exc}"
+            ) from exc
+
+        if default_iface is not None and default_iface == self.interface:
             raise TcError(
                 f"refusing to shape the default-route interface {self.interface!r}; "
                 "use an isolated test interface"
+            )
+        if self.interface in ("eth0", "lo"):
+            raise TcError(
+                f"refusing to shape {self.interface!r}; shaping eth0 or loopback is forbidden"
             )
 
     def _run(self, args: list[str], readonly: bool = False) -> str:
@@ -434,7 +467,13 @@ class TcController:
             f"qdisc add dev {self.interface} root handle {handle}: htb default {default_band}",
         ]
 
-    def plan_source_cap(self, src_ip: str, rate_mbps: float, handle: int = 1) -> list[str]:
+    def plan_source_cap(
+        self,
+        src_ip: str,
+        rate_mbps: float,
+        handle: int = 1,
+        parent_class: str | None = None,
+    ) -> list[str]:
         """Return the candidate tc commands to cap a source under an existing parent hierarchy.
 
         Does NOT include root qdisc creation. Creates only child class and flower filter.
@@ -444,20 +483,28 @@ class TcController:
         validate_interface(self.interface)
         validate_handle(handle)
         rate = f"{rate_mbps}mbit"
+        parent = parent_class or f"{handle}:"
         return [
-            f"class add dev {self.interface} parent {handle}: classid {handle}:10 htb rate {rate} ceil {rate}",
+            f"class add dev {self.interface} parent {parent} classid {handle}:10 htb rate {rate} ceil {rate}",
             f"filter add dev {self.interface} protocol ip parent {handle}:0 prio 1 "
             f"flower src_ip {src_ip} flowid {handle}:10",
         ]
 
-    def _build_owned_resources(self, src_ip: str, rate_mbps: float, handle: int = 1) -> list[OwnedResource]:
-        commands = self.plan_source_cap(src_ip, rate_mbps, handle=handle)
+    def _build_owned_resources(
+        self,
+        src_ip: str,
+        rate_mbps: float,
+        handle: int = 1,
+        parent_class: str | None = None,
+    ) -> list[OwnedResource]:
+        commands = self.plan_source_cap(src_ip, rate_mbps, handle=handle, parent_class=parent_class)
+        parent = parent_class or f"{handle}:"
         return [
             OwnedResource(
                 kind="class",
                 interface=self.interface,
                 command=commands[0],
-                parent=f"{handle}:",
+                parent=parent,
                 class_id=f"{handle}:10",
                 session_id=self.session_id,
                 rate_mbps=rate_mbps,
@@ -523,15 +570,20 @@ class TcController:
         src_ip: str,
         rate_mbps: float,
         handle: int = 1,
+        parent_class: str | None = None,
     ) -> list[str]:
         """Apply a per-source traffic cap under an approved parent hierarchy.
 
         MANDATORY SAFETY: Refuses live mutation unless verify_parent_hierarchy succeeds.
         Never touches or mutates root qdiscs.
         """
-        self.assert_safe_interface()
+        validate_interface(self.interface)
+        if self.interface in ("eth0", "lo"):
+            raise TcError(
+                f"refusing to shape {self.interface!r}; shaping eth0 or loopback is forbidden"
+            )
         validate_handle(handle)
-        commands = self.plan_source_cap(src_ip, rate_mbps, handle=handle)
+        commands = self.plan_source_cap(src_ip, rate_mbps, handle=handle, parent_class=parent_class)
 
         if self.dry_run:
             LOG.info(
@@ -543,10 +595,14 @@ class TcController:
             )
             return commands
 
+        self.assert_safe_interface()
+
         # MANDATORY CHECK: Refuse live mutation if approved parent hierarchy does not exist
         self.verify_parent_hierarchy(parent_handle=handle)
 
-        planned_resources = self._build_owned_resources(src_ip, rate_mbps, handle=handle)
+        planned_resources = self._build_owned_resources(
+            src_ip, rate_mbps, handle=handle, parent_class=parent_class
+        )
 
         for index, (line, res) in enumerate(zip(commands, planned_resources)):
             try:
@@ -661,14 +717,20 @@ class TcController:
         Root qdiscs are administrator infrastructure and are NEVER deleted.
         Mandatory verification before and after deletion for every child entity.
         """
-        self.assert_safe_interface()
-
         if not self.applied and not self.owned_resources:
             LOG.info(
                 "No recorded MicroburstHunter rules on %s; nothing to roll back",
                 self.interface,
             )
             return
+
+        if self.dry_run:
+            LOG.info("DRY-RUN: rollback of owned child resources simulated successfully")
+            self.applied.clear()
+            self.owned_resources.clear()
+            return
+
+        self.assert_safe_interface()
 
         if not self.owned_resources:
             raise TcOwnershipError(
@@ -677,12 +739,6 @@ class TcController:
                 "No network changes were made. Inspect the interface and remove only "
                 "explicitly identified MicroburstHunter rules."
             )
-
-        if self.dry_run:
-            LOG.info("DRY-RUN: rollback of owned child resources simulated successfully")
-            self.applied.clear()
-            self.owned_resources.clear()
-            return
 
         # Reverse order of installation: filter -> class
         to_remove = list(reversed(self.owned_resources))

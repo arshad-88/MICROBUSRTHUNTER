@@ -34,15 +34,14 @@ export default function TopologyPage() {
         <Panel className="overflow-hidden">
           <PanelHeader
             title="Fabric plane"
-            index="02"
             icon={Network}
-            note="Directional map of the monitored fabric. Selecting a port or a path updates every readout on this page from the same sample data."
+            note="Directional map of the monitored fabric. Selecting an endpoint or path inspects real-time counters and policy state."
             actions={
-              <>
+              <div className="flex items-center gap-1.5">
                 <Tag tone="neutral">4 sources</Tag>
-                <Tag tone="neutral">1 aggregation</Tag>
-                <Tag tone="neutral">1 destination</Tag>
-              </>
+                <Tag tone="neutral">1 switch</Tag>
+                <Tag tone="neutral">1 sink</Tag>
+              </div>
             }
           />
           <NetworkTopology
@@ -77,7 +76,7 @@ export default function TopologyPage() {
             />
           ) : (
             <Panel>
-              <PanelHeader title="Inspector" index="—" icon={MousePointerClick} />
+              <PanelHeader title="Inspector" icon={MousePointerClick} />
               <div className="px-4 py-5">
                 <p className="text-[11.5px] leading-5 text-muted-foreground">
                   Nothing is selected. Choose any port or traffic path in the map to read its

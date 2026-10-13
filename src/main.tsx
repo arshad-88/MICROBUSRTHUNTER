@@ -5,35 +5,24 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { MonitoringProvider } from "@/state/monitoring";
 import { AppAuthProvider } from "@/state/auth";
 import { ConvexReactClient } from "convex/react";
-import React, { StrictMode, useEffect, lazy, Suspense } from "react";
+import React, { StrictMode, useEffect, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
-// Lazy load route components for better code splitting
-const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const NotFound = lazy(() => import("./pages/NotFound.tsx"));
-const AppLayout = lazy(() =>
-  import("./components/layout/AppLayout").then((m) => ({ default: m.AppLayout })),
-);
-const Overview = lazy(() => import("./pages/app/Overview.tsx"));
-const TopologyPage = lazy(() => import("./pages/app/Topology.tsx"));
-const TrafficMonitor = lazy(() => import("./pages/app/TrafficMonitor.tsx"));
-const SourceAnalysis = lazy(() => import("./pages/app/SourceAnalysis.tsx"));
-const MitigationPage = lazy(() => import("./pages/app/Mitigation.tsx"));
-const Experiments = lazy(() => import("./pages/app/Experiments.tsx"));
-const EventLogs = lazy(() => import("./pages/app/EventLogs.tsx"));
-const SettingsPage = lazy(() => import("./pages/app/Settings.tsx"));
-
-// Simple loading fallback for route transitions
-function RouteLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
-    </div>
-  );
-}
+// Direct imports for reliable routing without dynamic chunk fetch failures
+import Landing from "./pages/Landing";
+import AuthPage from "./pages/Auth";
+import NotFound from "./pages/NotFound";
+import { AppLayout } from "./components/layout/AppLayout";
+import Overview from "./pages/app/Overview";
+import TopologyPage from "./pages/app/Topology";
+import TrafficMonitor from "./pages/app/TrafficMonitor";
+import SourceAnalysis from "./pages/app/SourceAnalysis";
+import MitigationPage from "./pages/app/Mitigation";
+import Experiments from "./pages/app/Experiments";
+import EventLogs from "./pages/app/EventLogs";
+import SettingsPage from "./pages/app/Settings";
 
 /** Silent error boundary — if VlyToolbar crashes it renders nothing instead of
  *  crashing the whole app (e.g. hook errors in the browser runtime). */
@@ -83,6 +72,13 @@ class RootErrorBoundary extends React.Component<
                 {this.state.stack}
               </pre>
             )}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow hover:opacity-90 transition-opacity"
+            >
+              Reload application
+            </button>
           </div>
         </div>
       );
@@ -136,7 +132,7 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <RouteSyncer />
           <MonitoringProvider>
-            <Suspense fallback={<RouteLoading />}>
+            <Suspense fallback={null}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route

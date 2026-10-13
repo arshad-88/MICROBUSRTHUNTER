@@ -170,16 +170,15 @@ export default function TrafficMonitor() {
         <Panel className="overflow-hidden xl:col-span-9">
           <PanelHeader
             title="Traffic time series"
-            index="03"
             icon={Activity}
-            note="Observed rate, rolling baseline and the configured burst threshold over logical simulation time."
+            note="Observed rate, rolling baseline and the adaptive burst threshold over time."
             actions={
-              <span className="flex items-center gap-2">
-                <span className="label-caps text-muted-foreground/60">range</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-muted-foreground">Range</span>
                 <span
                   role="group"
                   aria-label="Time range"
-                  className="flex overflow-hidden rounded-sm border border-border"
+                  className="flex overflow-hidden rounded border border-border"
                 >
                   {RANGES.map((range) => (
                     <button
@@ -188,9 +187,9 @@ export default function TrafficMonitor() {
                       aria-pressed={rangeMs === range.value}
                       onClick={() => setRangeMs(range.value)}
                       className={cn(
-                        "data-mono px-2.5 py-1 text-[10.5px] transition-colors",
+                        "data-mono px-2.5 py-1 text-[11px] transition-colors",
                         rangeMs === range.value
-                          ? "bg-primary/15 text-primary"
+                          ? "bg-primary text-primary-foreground font-medium"
                           : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
                       )}
                     >
@@ -198,7 +197,7 @@ export default function TrafficMonitor() {
                     </button>
                   ))}
                 </span>
-              </span>
+              </div>
             }
           />
           <div className="px-4 py-3">
@@ -209,12 +208,14 @@ export default function TrafficMonitor() {
             />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
               <ChartLegend />
-              <span className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <StatusPill tone={snapshot.running ? "normal" : "idle"} pulse={snapshot.running}>
-                  {snapshot.running ? "sampling" : "paused"}
+                  {snapshot.running ? (snapshot.dataSource === "live" ? "sniffing" : "sampling") : "paused"}
                 </StatusPill>
-                <Tag tone="neutral">simulated</Tag>
-              </span>
+                <Tag tone={snapshot.dataSource === "live" ? "live" : "neutral"}>
+                  {snapshot.dataSource === "live" ? "Live capture" : "Simulated"}
+                </Tag>
+              </div>
             </div>
           </div>
           <p className="border-t border-border px-4 py-2.5 text-[10.5px] leading-4 text-muted-foreground">
@@ -287,9 +288,8 @@ export default function TrafficMonitor() {
       <Panel className="overflow-hidden">
         <PanelHeader
           title="Recent burst events"
-          index="04"
           icon={OctagonAlert}
-          note="Every detected burst with the host that caused it, the observed peak and whether it has recovered."
+          note="Every detected burst with the source host, observed peak throughput, and recovery state."
           actions={<Tag tone="neutral">{burstRows.length} recorded</Tag>}
         />
         {burstRows.length === 0 ? (
@@ -307,7 +307,7 @@ export default function TrafficMonitor() {
                     (head) => (
                       <th
                         key={head}
-                        className="label-caps px-4 py-2 font-medium text-muted-foreground/70"
+                        className="px-4 py-2.5 text-[11px] font-medium text-muted-foreground"
                       >
                         {head}
                       </th>

@@ -1,0 +1,94 @@
+{
+  "timestamp_utc": "2026-10-13T09:28:20.701265+00:00",
+  "disclaimer": "Synthetic benchmark results validate internal state-machine correctness, latency, and attribution logic. Zero false positives in this finite synthetic suite does NOT guarantee zero false positives in production networks.",
+  "false_positives": {
+    "num_windows": 1000,
+    "false_positive_count": 0,
+    "false_positive_rate_pct": 0.0,
+    "status": "PASS"
+  },
+  "latency_and_rate": {
+    "trials": 100,
+    "detected_count": 100,
+    "detection_rate_pct": 100.0,
+    "mean_latency_ms": 20.0,
+    "mean_latency_windows": 2.0,
+    "persistence_setting": 2,
+    "status": "PASS"
+  },
+  "transient_rejection": {
+    "trials": 100,
+    "falsely_triggered": 0,
+    "rejection_rate_pct": 100.0,
+    "status": "PASS"
+  },
+  "recovery_and_cooldown": {
+    "trials": 50,
+    "mean_recovery_ms": 30.0,
+    "recovery_windows_cfg": 3,
+    "cooldown_enforced_count": 50,
+    "cooldown_enforcement_pct": 100.0,
+    "status": "PASS"
+  },
+  "boundary_conditions": {
+    "tests": [
+      {
+        "case": "Rate Sub-Threshold (79.5 Mbps vs 80.0 Mbps threshold)",
+        "expected_triggered": false,
+        "actual_triggered": false,
+        "pass": true
+      },
+      {
+        "case": "Rate Super-Threshold (80.5 Mbps vs 80.0 Mbps threshold)",
+        "expected_triggered": true,
+        "actual_triggered": true,
+        "pass": true
+      },
+      {
+        "case": "Persistence Lower Border (1 window spike < 2 window threshold)",
+        "expected_triggered": false,
+        "actual_triggered": false,
+        "pass": true
+      },
+      {
+        "case": "Persistence Exact Border (2 windows sustained == 2 window threshold)",
+        "expected_triggered": true,
+        "actual_triggered": true,
+        "pass": true
+      }
+    ],
+    "all_passed": true,
+    "status": "PASS"
+  },
+  "multi_source_attribution": {
+    "cases": [
+      {
+        "scenario": "Dominant Single Offender (75% / 15% / 10%)",
+        "expected_top_ip": "10.0.1.100",
+        "actual_top_ip": "10.0.1.100",
+        "expected_contribution_pct": 75.0,
+        "actual_contribution_pct": 75.0,
+        "pass": true
+      },
+      {
+        "scenario": "Co-Equal Dual Sources (50% / 50%)",
+        "expected_top_ip": "10.0.2.1 or 10.0.2.2",
+        "actual_top_ip": "10.0.2.1",
+        "expected_contribution_pct": 50.0,
+        "actual_contribution_pct": 50.0,
+        "pass": true
+      }
+    ],
+    "all_passed": true,
+    "status": "PASS"
+  },
+  "resources": {
+    "num_windows": 10000,
+    "total_wall_sec": 0.1678,
+    "total_cpu_sec": 0.1562,
+    "throughput_windows_per_sec": 59580.6,
+    "cpu_microsec_per_window": 15.62,
+    "peak_memory_kb": 3.9,
+    "status": "PASS"
+  }
+}

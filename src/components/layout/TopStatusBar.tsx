@@ -90,16 +90,13 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         </Button>
 
         <div className="flex min-w-0 items-baseline gap-2.5">
-          <span className="data-mono hidden text-[10px] text-primary/80 sm:inline">
-            {page.code}
-          </span>
-          <h1 className="truncate text-[14px] font-semibold tracking-tight text-foreground">
+          <h1 className="truncate text-[15px] font-semibold tracking-tight text-foreground">
             {page.label}
           </h1>
           <span
             key={burst?.id ?? "idle"}
             className={cn(
-              "hidden truncate text-[11px] text-muted-foreground lg:inline",
+              "hidden truncate text-[12px] text-muted-foreground lg:inline",
               burst && "mbh-flash rounded-sm px-1.5",
             )}
           >
@@ -110,38 +107,38 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-2 border border-border bg-surface px-2.5 py-1.5 md:flex">
+          <span className="hidden items-center gap-2 rounded border border-border bg-surface px-2.5 py-1 text-xs md:flex">
             <span
               className={cn(
-                "size-1.5 rounded-full",
-                snapshot.running ? "bg-success mbh-pulse" : "bg-muted-foreground",
+                "size-2 rounded-full",
+                snapshot.running ? "bg-success mbh-pulse" : "bg-muted-foreground/60",
               )}
             />
             <span
               className={cn(
-                "label-caps text-[9px]",
+                "font-medium",
                 snapshot.running ? "text-success" : "text-muted-foreground",
               )}
             >
-              {snapshot.running ? "Monitoring" : "Halted"}
+              {snapshot.running ? "Active" : "Halted"}
             </span>
           </span>
 
           <Button
             type="button"
             size="sm"
-            className="gap-1.5 rounded-sm"
+            className="gap-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 font-medium px-3 shadow-xs"
             onClick={handleStart}
             disabled={snapshot.running}
           >
-            <Play className="size-3.5" />
-            <span className="hidden sm:inline">Start</span>
+            <Play className="size-3.5 fill-current" />
+            <span className="hidden sm:inline">Start capture</span>
           </Button>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="gap-1.5 rounded-sm"
+            className="gap-1.5 rounded border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 px-3"
             onClick={handleStop}
             disabled={!snapshot.running}
           >
@@ -152,24 +149,24 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
 
       {/* Row 2 — telemetry strip */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border px-4 py-2 lg:px-6">
-        <Telemetry label="state" tone={snapshot.running ? "live" : "muted"}>
-          {snapshot.running ? "SAMPLING" : "HALTED"}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border px-4 py-2 text-xs lg:px-6">
+        <Telemetry label="State" tone={snapshot.running ? "live" : "muted"}>
+          {snapshot.running ? (snapshot.dataSource === "live" ? "Sniffing" : "Sampling") : "Halted"}
         </Telemetry>
-        <Telemetry label="source" tone={snapshot.dataSource === "simulated" ? "muted" : "live"}>
-          {snapshot.dataSource === "simulated" ? "SIMULATED" : "LIVE CAPTURE"}
+        <Telemetry label="Engine" tone={snapshot.dataSource === "simulated" ? "muted" : "live"}>
+          {snapshot.dataSource === "simulated" ? "SIMULATED" : "LIVE CAPTURE (SCAPY)"}
         </Telemetry>
-        <Telemetry label="interface" tone="muted">
+        <Telemetry label="Interface" tone={snapshot.dataSource === "live" ? "live" : "muted"}>
           {interfaceLabel}
         </Telemetry>
-        <Telemetry label="session" tone="muted">
-          {localMode ? "LOCAL (NO BACKEND)" : "ACCOUNT"}
+        <Telemetry label="Session" tone="muted">
+          {snapshot.dataSource === "live" ? "PYTHON BACKEND" : (localMode ? "LOCAL (NO BACKEND)" : "ACCOUNT")}
         </Telemetry>
-        <Telemetry label="sim clock" tone="muted">
-          {formatSimTime(snapshot.simTime)}
+        <Telemetry label="Elapsed" tone="muted">
+          {snapshot.dataSource === "live" ? `${(snapshot.simTime / 1000).toFixed(1)}s` : formatSimTime(snapshot.simTime)}
         </Telemetry>
-        <Telemetry label="last update" tone="muted">
-          {snapshot.running ? formatClock(updatedAt) : "frozen"}
+        <Telemetry label="Last update" tone="muted">
+          {snapshot.running ? formatClock(updatedAt) : "Frozen"}
         </Telemetry>
 
         <span
@@ -181,7 +178,7 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           <span
             className={cn(
-              "size-1.5 rounded-full",
+              "size-2 rounded-full",
               alertTone === "burst"
                 ? "bg-burst mbh-pulse"
                 : alertTone === "mitigated"
@@ -191,7 +188,7 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
           />
           <span
             className={cn(
-              "label-caps text-[9px]",
+              "text-xs font-medium",
               alertTone === "burst"
                 ? "text-burst"
                 : alertTone === "mitigated"
@@ -202,7 +199,7 @@ export function TopStatusBar({ onOpenMenu }: { onOpenMenu: () => void }) {
             {burst
               ? `Burst active · ${burst.peakMbps.toFixed(1)} Mbps`
               : snapshot.mitigation.active
-                ? `Capping ${snapshot.mitigation.targetName ?? "flow"} @ ${snapshot.mitigation.rateLimitMbps.toFixed(0)} Mbps`
+                ? `Capping ${snapshot.mitigation.targetName ?? "flow"} @ ${snapshot.mitigation.rateLimitMbps.toFixed(0)} Mbps (dry-run)`
                 : "Fabric nominal"}
           </span>
         </span>

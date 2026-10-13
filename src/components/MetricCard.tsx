@@ -42,7 +42,7 @@ export function MetricCard({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="label-caps truncate text-muted-foreground">{label}</span>
+        <span className="text-[11px] font-medium text-muted-foreground truncate">{label}</span>
         {Icon && (
           <Icon className={cn("size-3.5 shrink-0", toneText[t])} aria-hidden="true" />
         )}

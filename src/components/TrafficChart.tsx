@@ -190,7 +190,7 @@ export function TrafficChart({
             x={PAD.left - 8}
             y={PAD.top - 6}
             textAnchor="end"
-            className="label-caps fill-muted-foreground/50 text-[8px]"
+            className="fill-muted-foreground/70 text-[9px] font-medium"
           >
             Mbps
           </text>
@@ -210,9 +210,9 @@ export function TrafficChart({
                 <text
                   x={band.x1 + 5}
                   y={PAD.top + 11}
-                  className="label-caps fill-burst/90 text-[8px]"
+                  className="fill-burst text-[9px] font-semibold"
                 >
-                  burst
+                  Burst
                 </text>
               )}
             </g>
@@ -267,33 +267,36 @@ export function TrafficChart({
           ))}
 
           {/* time axis */}
-          {geometry.ticks.map((tick, i) => (
-            <g key={`t-${i}`}>
-              <line
-                x1={tick.x}
-                x2={tick.x}
-                y1={PAD.top + plotH}
-                y2={PAD.top + plotH + 4}
-                className="stroke-border"
-                strokeWidth={1}
-              />
-              <text
-                x={tick.x}
-                y={PAD.top + plotH + 16}
-                textAnchor="middle"
-                className="data-mono fill-muted-foreground/70 text-[9.5px]"
-              >
-                {(tick.t / 1000).toFixed(1)}s
-              </text>
-            </g>
-          ))}
+          {geometry.ticks.map((tick, i) => {
+            const relSec = ((tick.t - geometry.t0) / 1000).toFixed(1);
+            return (
+              <g key={`t-${i}`}>
+                <line
+                  x1={tick.x}
+                  x2={tick.x}
+                  y1={PAD.top + plotH}
+                  y2={PAD.top + plotH + 4}
+                  className="stroke-border"
+                  strokeWidth={1}
+                />
+                <text
+                  x={tick.x}
+                  y={PAD.top + plotH + 16}
+                  textAnchor="middle"
+                  className="data-mono fill-muted-foreground/70 text-[9.5px]"
+                >
+                  +{relSec}s
+                </text>
+              </g>
+            );
+          })}
           <text
             x={PAD.left + plotW}
             y={PAD.top + plotH + 16}
             textAnchor="end"
-            className="label-caps fill-muted-foreground/50 text-[8px]"
+            className="fill-muted-foreground/70 text-[9px] font-medium"
           >
-            sim time
+            Time
           </text>
 
           {/* current-value markers in the right gutter */}

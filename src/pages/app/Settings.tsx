@@ -69,7 +69,6 @@ export default function Settings() {
       <Panel className="overflow-hidden">
         <PanelHeader
           title="Configuration"
-          index="08"
           icon={SettingsIcon}
           note="Invalid values are rejected on apply and the previous safe configuration is retained."
           actions={
@@ -402,7 +401,7 @@ function NumberField({
   const id = `field-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
   return (
     <div>
-      <Label htmlFor={id} className="label-caps text-muted-foreground">
+      <Label htmlFor={id} className="text-[11px] font-medium text-muted-foreground">
         {label}
       </Label>
       <Input
